@@ -9,6 +9,24 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
 }
 
+// "[00:01] SPEAKER_00: <text>" -- every line starts with a Latin timestamp
+// prefix, so dir="auto" on the whole line always sees a Latin first
+// character and never flips to RTL. Split the prefix out so RTL scripts
+// (e.g. Urdu) in the spoken text render right-to-left on their own.
+const LINE_PREFIX = /^(\[\d{1,2}:\d{2}\]\s*(?:[A-Za-z_]+\d*|[A-Za-z ]+):\s*)(.*)$/
+
+function TranscriptLine({ line }: { line: string }) {
+  const match = line.match(LINE_PREFIX)
+  if (!match) return <div className="whitespace-pre-wrap">{line || " "}</div>
+  const [, prefix, text] = match
+  return (
+    <div className="whitespace-pre-wrap">
+      <span className="text-[var(--muted-foreground)]">{prefix}</span>
+      <span dir="auto">{text}</span>
+    </div>
+  )
+}
+
 function Transcript({ transcript }: { transcript: string | null }) {
   if (!transcript) {
     return <p className="p-6 text-sm text-[var(--muted-foreground)]">No transcript available.</p>
@@ -16,9 +34,11 @@ function Transcript({ transcript }: { transcript: string | null }) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <pre className="thin-scroll max-h-[32rem] overflow-y-auto whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-[var(--foreground)]">
-          {transcript}
-        </pre>
+        <div className="thin-scroll max-h-[32rem] overflow-y-auto break-words font-mono text-[13px] leading-relaxed text-[var(--foreground)]">
+          {transcript.split("\n").map((line, i) => (
+            <TranscriptLine key={i} line={line} />
+          ))}
+        </div>
       </CardContent>
     </Card>
   )

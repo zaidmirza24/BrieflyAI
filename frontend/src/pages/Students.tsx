@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Plus, Search, Users } from "lucide-react"
+import { ArrowRight, Plus, Search, Users } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -74,32 +74,62 @@ export default function Students() {
         )}
 
         {students && students.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
-                  <th className="px-6 py-3 font-medium">Student</th>
-                  <th className="px-6 py-3 font-medium">Mentor</th>
-                  <th className="px-6 py-3 font-medium">Analyses</th>
-                  <th className="px-6 py-3 font-medium">Last Analysis</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {students.map((s) => (
-                  <tr key={s.id} className="transition-colors hover:bg-[var(--muted)]">
-                    <td className="px-6 py-3.5">
-                      <Link to={`/students/${s.id}`} className="font-medium text-[var(--foreground)] hover:underline">
-                        {s.name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.mentor_name ?? "—"}</td>
-                    <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.analysis_count}</td>
-                    <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
+          <>
+            {/* Mobile: stacked cards */}
+            <ul className="divide-y divide-[var(--border)] sm:hidden">
+              {students.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    to={`/students/${s.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-[var(--muted)]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--foreground)]">{s.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">
+                        Mentor: {s.mentor_name ?? "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        {s.analysis_count} {s.analysis_count === 1 ? "session" : "sessions"} · Last{" "}
+                        {formatDate(s.last_analysis_at)}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                    <th className="px-6 py-3 font-medium">Student</th>
+                    <th className="px-6 py-3 font-medium">Mentor</th>
+                    <th className="px-6 py-3 font-medium">Analyses</th>
+                    <th className="px-6 py-3 font-medium">Last Analysis</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {students.map((s) => (
+                    <tr key={s.id} className="transition-colors hover:bg-[var(--muted)]">
+                      <td className="px-6 py-3.5">
+                        <Link
+                          to={`/students/${s.id}`}
+                          className="font-medium text-[var(--foreground)] hover:underline"
+                        >
+                          {s.name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.mentor_name ?? "—"}</td>
+                      <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.analysis_count}</td>
+                      <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>
