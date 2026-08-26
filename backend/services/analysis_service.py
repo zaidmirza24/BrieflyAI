@@ -168,8 +168,17 @@ def run_analysis_for_session(
             if stage == "transcribed":
                 _set_status(db, oid, SessionStatus.TRANSCRIBED)
 
+        student = db.students.find_one({"_id": session["student_id"]})
+        mentor = db.mentors.find_one({"_id": session["mentor_id"]})
+
         try:
-            result = run_pipeline(tmp_path, cfg, on_stage=bridge)
+            result = run_pipeline(
+                tmp_path,
+                cfg,
+                on_stage=bridge,
+                student_name=student["name"] if student else None,
+                mentor_name=mentor["name"] if mentor else None,
+            )
         except RuntimeError as e:
             # Missing API keys, ffmpeg, etc -- already human-readable.
             raise _fail(str(e)) from e

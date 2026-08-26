@@ -9,11 +9,14 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
 }
 
-// "[00:01] SPEAKER_00: <text>" -- every line starts with a Latin timestamp
-// prefix, so dir="auto" on the whole line always sees a Latin first
-// character and never flips to RTL. Split the prefix out so RTL scripts
-// (e.g. Urdu) in the spoken text render right-to-left on their own.
-const LINE_PREFIX = /^(\[\d{1,2}:\d{2}\]\s*(?:[A-Za-z_]+\d*|[A-Za-z ]+):\s*)(.*)$/
+// "[00:01] SPEAKER_00: <text>" or, once roles are resolved, "[00:01] Zaid: <text>"
+// -- every line starts with a Latin timestamp prefix, so dir="auto" on the
+// whole line always sees a Latin first character and never flips to RTL.
+// Split the prefix out so RTL scripts (e.g. Urdu) in the spoken text render
+// right-to-left on their own. The label itself is matched up to the first
+// colon rather than a strict charset, since it may be a real name (spaces,
+// punctuation, non-Latin characters) rather than just SPEAKER_NN.
+const LINE_PREFIX = /^(\[\d{1,2}:\d{2}\]\s*[^:\n]+:\s*)(.*)$/
 
 function TranscriptLine({ line }: { line: string }) {
   const match = line.match(LINE_PREFIX)

@@ -32,6 +32,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default=None, help="Directory to write transcript.txt / insights.json. Default: output/<audio filename>")
     parser.add_argument("--llm-model", default=None, help="Override the Gemini model. Default: gemini-3.6-flash")
     parser.add_argument("--insights-language", default=None, choices=["english", "roman-urdu", "roman-hindi"], help="Language for insights.json text values. Default: english")
+    parser.add_argument("--student-name", default=None, help="Mentee/student's name, used to resolve speaker roles and label the transcript")
+    parser.add_argument("--mentor-name", default=None, help="Mentor's name, used to resolve speaker roles and label the transcript")
     return parser.parse_args()
 
 
@@ -77,7 +79,12 @@ def main() -> int:
 
     overall_start = time.time()
     try:
-        result = run_pipeline(args.audio_path, cfg)
+        result = run_pipeline(
+            args.audio_path,
+            cfg,
+            student_name=args.student_name,
+            mentor_name=args.mentor_name,
+        )
     except Exception as e:
         logger.error("Pipeline failed: %s", e)
         return 1
