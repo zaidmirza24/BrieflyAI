@@ -44,6 +44,90 @@
   --radius-sm: 0.5rem;
   --radius: 0.75rem;
   --radius-lg: 1rem;
+
+  color-scheme: light;
+}
+
+/* System preference (no explicit user choice saved yet) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0e0e13;
+    --surface: #16161d;
+    --foreground: #f2f2f5;
+    --muted: #1a1a21;
+    --muted-foreground: #9a9aa6;
+    --border: #27272f;
+    --border-strong: #34343e;
+
+    --primary: #f2f2f5;
+    --primary-foreground: #0b0c10;
+
+    --accent: #a78bfa;
+    --accent-strong: #c4b5fd;
+    --accent-foreground: #1a0b2e;
+    --accent-bg: #241b36;
+    --accent-border: #3b2a5c;
+
+    --destructive: #f87171;
+    --destructive-foreground: #2a0a0a;
+    --destructive-bg: #331414;
+    --destructive-border: #5c2323;
+
+    --success: #4ade80;
+    --success-foreground: #06210f;
+    --success-bg: #132a1c;
+    --success-border: #1e4a2f;
+
+    --warning: #fbbf24;
+    --warning-bg: #332405;
+    --warning-border: #5c4109;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit user choice, wins over system preference either way */
+:root[data-theme="dark"] {
+  --background: #0e0e13;
+  --surface: #16161d;
+  --foreground: #f2f2f5;
+  --muted: #1a1a21;
+  --muted-foreground: #9a9aa6;
+  --border: #27272f;
+  --border-strong: #34343e;
+
+  --primary: #f2f2f5;
+  --primary-foreground: #0b0c10;
+
+  --accent: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --accent-foreground: #1a0b2e;
+  --accent-bg: #241b36;
+  --accent-border: #3b2a5c;
+
+  --destructive: #f87171;
+  --destructive-foreground: #2a0a0a;
+  --destructive-bg: #331414;
+  --destructive-border: #5c2323;
+
+  --success: #4ade80;
+  --success-foreground: #06210f;
+  --success-bg: #132a1c;
+  --success-border: #1e4a2f;
+
+  --warning: #fbbf24;
+  --warning-bg: #332405;
+  --warning-border: #5c4109;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+
+  color-scheme: dark;
 }
 
 * {

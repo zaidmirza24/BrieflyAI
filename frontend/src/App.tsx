@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Navigate, NavLink, Route, BrowserRouter, Routes, useLocation } from "react-router-dom"
-import { LayoutDashboard, LogOut, Menu, Plus, Sparkles, Users, X } from "lucide-react"
+import { LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import Students from "@/pages/Students"
@@ -10,6 +10,7 @@ import AnalysisView from "@/pages/AnalysisView"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { isLoggedIn, clearCredentials } from "@/lib/auth"
+import { getEffectiveTheme, setTheme, subscribeToSystemTheme, type Theme } from "@/lib/theme"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) return <Navigate to="/login" replace />
@@ -64,6 +65,32 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
+function ThemeToggle({ className }: { className?: string }) {
+  const [theme, setThemeState] = useState<Theme>(getEffectiveTheme)
+
+  useEffect(() => subscribeToSystemTheme(() => setThemeState(getEffectiveTheme())), [])
+
+  function toggle() {
+    const next: Theme = theme === "dark" ? "light" : "dark"
+    setTheme(next)
+    setThemeState(next)
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+        className,
+      )}
+    >
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {theme === "dark" ? "Light mode" : "Dark mode"}
+    </button>
+  )
+}
+
 function SignOutButton({ className }: { className?: string }) {
   return (
     <button
@@ -105,7 +132,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </NavLink>
             <SidebarNav />
           </div>
-          <SignOutButton />
+          <div className="flex flex-col gap-1">
+            <ThemeToggle />
+            <SignOutButton />
+          </div>
         </div>
       </aside>
 
@@ -149,7 +179,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex flex-1 flex-col justify-between p-3">
               <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
-              <SignOutButton />
+              <div className="flex flex-col gap-1">
+                <ThemeToggle />
+                <SignOutButton />
+              </div>
             </div>
           </div>
         </div>
