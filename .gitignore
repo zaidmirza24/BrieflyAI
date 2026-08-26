@@ -1,0 +1,30 @@
+# secrets
+.env
+
+# virtual env
+venv/
+
+# python
+__pycache__/
+*.pyc
+
+# generated output (transcripts/insights may contain private data)
+output/
+
+# stale local db from an earlier (abandoned) SQLite iteration -- may contain
+# private data, not used since the switch to MongoDB
+data/
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# audio input files (can be large and/or private)
+*.aac
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.ogg
+*.opus
+*.webm

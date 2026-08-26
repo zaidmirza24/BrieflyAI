@@ -1,0 +1,11 @@
+from enum import StrEnum
+
+
+class SessionStatus(StrEnum):
+    UPLOADED = "UPLOADED"
+    PROCESSING = "PROCESSING"
+    TRANSCRIBED = "TRANSCRIBED"
+    ANALYZED = "ANALYZED"
+    SAVED = "SAVED"
+    AUDIO_DELETED = "AUDIO_DELETED"
+    FAILED = "FAILED"
