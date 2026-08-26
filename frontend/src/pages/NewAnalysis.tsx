@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ApiError,
   createSession,
@@ -24,6 +25,7 @@ export default function NewAnalysis() {
   const navigate = useNavigate()
   const [mentors, setMentors] = useState<MentorSummary[]>([])
   const [mentees, setMentees] = useState<StudentSummary[]>([])
+  const [peopleLoading, setPeopleLoading] = useState(true)
   const [mentorId, setMentorId] = useState("")
   const [menteeId, setMenteeId] = useState("")
   const [uploaded, setUploaded] = useState<UploadedAudio | null>(null)
@@ -34,8 +36,10 @@ export default function NewAnalysis() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    listMentors().then(setMentors).catch(() => setMentors([]))
-    listStudents().then(setMentees).catch(() => setMentees([]))
+    Promise.all([
+      listMentors().then(setMentors).catch(() => setMentors([])),
+      listStudents().then(setMentees).catch(() => setMentees([])),
+    ]).finally(() => setPeopleLoading(false))
   }, [])
 
   const canStart = !!uploaded && mentorId !== "" && menteeId !== "" && phase === "form"
@@ -97,41 +101,49 @@ export default function NewAnalysis() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentor">Mentor</Label>
-            <Select
-              id="mentor"
-              value={mentorId}
-              onChange={(e) => setMentorId(e.target.value)}
-              disabled={phase !== "form"}
-              required
-            >
-              <option value="" disabled>
-                Select a mentor
-              </option>
-              {mentors.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+            {peopleLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                id="mentor"
+                value={mentorId}
+                onChange={(e) => setMentorId(e.target.value)}
+                disabled={phase !== "form"}
+                required
+              >
+                <option value="" disabled>
+                  Select a mentor
                 </option>
-              ))}
-            </Select>
+                {mentors.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentee">Mentee</Label>
-            <Select
-              id="mentee"
-              value={menteeId}
-              onChange={(e) => setMenteeId(e.target.value)}
-              disabled={phase !== "form"}
-              required
-            >
-              <option value="" disabled>
-                Select a mentee
-              </option>
-              {mentees.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+            {peopleLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                id="mentee"
+                value={menteeId}
+                onChange={(e) => setMenteeId(e.target.value)}
+                disabled={phase !== "form"}
+                required
+              >
+                <option value="" disabled>
+                  Select a mentee
                 </option>
-              ))}
-            </Select>
+                {mentees.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
