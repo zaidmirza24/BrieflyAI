@@ -25,7 +25,8 @@ export default function NewAnalysis() {
   const navigate = useNavigate()
   const [mentors, setMentors] = useState<MentorSummary[]>([])
   const [mentees, setMentees] = useState<StudentSummary[]>([])
-  const [peopleLoading, setPeopleLoading] = useState(true)
+  const [mentorsLoading, setMentorsLoading] = useState(true)
+  const [menteesLoading, setMenteesLoading] = useState(false)
   const [mentorId, setMentorId] = useState("")
   const [menteeId, setMenteeId] = useState("")
   const [uploaded, setUploaded] = useState<UploadedAudio | null>(null)
@@ -36,11 +37,27 @@ export default function NewAnalysis() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      listMentors().then(setMentors).catch(() => setMentors([])),
-      listStudents().then(setMentees).catch(() => setMentees([])),
-    ]).finally(() => setPeopleLoading(false))
+    listMentors()
+      .then(setMentors)
+      .catch(() => setMentors([]))
+      .finally(() => setMentorsLoading(false))
   }, [])
+
+  // Mentees are scoped to the selected mentor -- picking a mentor is the
+  // gate for which mentees can be chosen, per the sheet's assignments.
+  useEffect(() => {
+    if (!mentorId) {
+      setMentees([])
+      setMenteeId("")
+      return
+    }
+    setMenteesLoading(true)
+    setMenteeId("")
+    listStudents(undefined, mentorId)
+      .then(setMentees)
+      .catch(() => setMentees([]))
+      .finally(() => setMenteesLoading(false))
+  }, [mentorId])
 
   const canStart = !!uploaded && mentorId !== "" && menteeId !== "" && phase === "form"
 
@@ -101,7 +118,7 @@ export default function NewAnalysis() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentor">Mentor</Label>
-            {peopleLoading ? (
+            {mentorsLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
               <Select
@@ -124,18 +141,18 @@ export default function NewAnalysis() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentee">Mentee</Label>
-            {peopleLoading ? (
+            {menteesLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
               <Select
                 id="mentee"
                 value={menteeId}
                 onChange={(e) => setMenteeId(e.target.value)}
-                disabled={phase !== "form"}
+                disabled={phase !== "form" || !mentorId}
                 required
               >
                 <option value="" disabled>
-                  Select a mentee
+                  {mentorId ? "Select a mentee" : "Select a mentor first"}
                 </option>
                 {mentees.map((s) => (
                   <option key={s.id} value={s.id}>
