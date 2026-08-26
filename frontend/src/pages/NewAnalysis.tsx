@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   ApiError,
   createSession,
@@ -118,49 +117,43 @@ export default function NewAnalysis() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentor">Mentor</Label>
-            {mentorsLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                id="mentor"
-                value={mentorId}
-                onChange={(e) => setMentorId(e.target.value)}
-                disabled={phase !== "form"}
-                required
-              >
-                <option value="" disabled>
-                  Select a mentor
+            <Select
+              id="mentor"
+              value={mentorId}
+              onChange={(e) => setMentorId(e.target.value)}
+              disabled={phase !== "form"}
+              loading={mentorsLoading}
+              required
+            >
+              <option value="" disabled>
+                {mentorsLoading ? "Loading mentors…" : "Select a mentor"}
+              </option>
+              {mentors.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
                 </option>
-                {mentors.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </Select>
-            )}
+              ))}
+            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentee">Mentee</Label>
-            {menteesLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                id="mentee"
-                value={menteeId}
-                onChange={(e) => setMenteeId(e.target.value)}
-                disabled={phase !== "form" || !mentorId}
-                required
-              >
-                <option value="" disabled>
-                  {mentorId ? "Select a mentee" : "Select a mentor first"}
+            <Select
+              id="mentee"
+              value={menteeId}
+              onChange={(e) => setMenteeId(e.target.value)}
+              disabled={phase !== "form" || !mentorId}
+              loading={menteesLoading}
+              required
+            >
+              <option value="" disabled>
+                {menteesLoading ? "Loading mentees…" : mentorId ? "Select a mentee" : "Select a mentor first"}
+              </option>
+              {mentees.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
-                {mentees.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
-            )}
+              ))}
+            </Select>
           </div>
         </CardContent>
       </Card>
