@@ -43,8 +43,20 @@ def create_student(payload: StudentCreate, db: Database = Depends(get_db), _user
 
 
 @router.get("", response_model=list[StudentOut])
-def list_students(q: str | None = Query(None), db: Database = Depends(get_db), _user: str = Depends(require_auth)):
-    query = {"name": {"$regex": q, "$options": "i"}} if q else {}
+def list_students(
+    q: str | None = Query(None),
+    mentor_id: str | None = Query(None),
+    db: Database = Depends(get_db),
+    _user: str = Depends(require_auth),
+):
+    query: dict = {}
+    if q:
+        query["name"] = {"$regex": q, "$options": "i"}
+    if mentor_id:
+        try:
+            query["primary_mentor_id"] = ObjectId(mentor_id)
+        except InvalidId:
+            raise HTTPException(status_code=400, detail="Invalid mentor id.")
     students = db.students.find(query).sort("name", 1)
     return [_student_out(db, s) for s in students]
 

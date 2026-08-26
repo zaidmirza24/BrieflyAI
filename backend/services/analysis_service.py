@@ -36,38 +36,22 @@ def _now() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def _find_or_create_student(db: Database, name: str) -> dict:
-    doc = db.students.find_one({"name": name})
-    if doc:
-        return doc
-    now = _now()
-    result = db.students.insert_one({"name": name, "created_at": now, "updated_at": now})
-    return db.students.find_one({"_id": result.inserted_id})
-
-
-def _find_or_create_mentor(db: Database, name: str) -> dict:
-    doc = db.mentors.find_one({"name": name})
-    if doc:
-        return doc
-    result = db.mentors.insert_one({"name": name, "created_at": _now()})
-    return db.mentors.find_one({"_id": result.inserted_id})
-
-
 def create_session(
     db: Database,
-    student_name: str,
-    mentor_name: str,
+    student_id: ObjectId,
+    mentor_id: ObjectId,
     storage_key: str,
     audio_filename: str,
     audio_duration: float | None,
     content_type: str | None,
 ) -> dict:
-    student = _find_or_create_student(db, student_name)
-    mentor = _find_or_create_mentor(db, mentor_name)
+    # Mentors and mentees (students) are persistent, pre-seeded entities --
+    # see backend/scripts/seed_mentors_mentees.py -- so a session only ever
+    # references their existing ids, never creates new records.
     now = _now()
     doc = {
-        "student_id": student["_id"],
-        "mentor_id": mentor["_id"],
+        "student_id": student_id,
+        "mentor_id": mentor_id,
         "audio_filename": audio_filename,
         "audio_duration": audio_duration,
         "content_type": content_type,

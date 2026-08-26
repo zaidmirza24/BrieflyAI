@@ -1,20 +1,31 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AudioLines, ShieldCheck, Sparkles } from "lucide-react"
 import { AudioUpload, type UploadedAudio } from "@/components/AudioUpload"
 import { AnalysisStepper } from "@/components/AnalysisStepper"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ApiError, createSession, streamAnalysis, type AnalysisStage } from "@/lib/api"
+import { Select } from "@/components/ui/select"
+import {
+  ApiError,
+  createSession,
+  listMentors,
+  listStudents,
+  streamAnalysis,
+  type AnalysisStage,
+  type MentorSummary,
+  type StudentSummary,
+} from "@/lib/api"
 
 type Phase = "form" | "analyzing" | "error"
 
 export default function NewAnalysis() {
   const navigate = useNavigate()
-  const [studentName, setStudentName] = useState("")
-  const [mentorName, setMentorName] = useState("")
+  const [mentors, setMentors] = useState<MentorSummary[]>([])
+  const [mentees, setMentees] = useState<StudentSummary[]>([])
+  const [mentorId, setMentorId] = useState("")
+  const [menteeId, setMenteeId] = useState("")
   const [uploaded, setUploaded] = useState<UploadedAudio | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
@@ -22,10 +33,15 @@ export default function NewAnalysis() {
   const [stage, setStage] = useState<AnalysisStage | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const canStart = !!uploaded && studentName.trim() !== "" && mentorName.trim() !== "" && phase === "form"
+  useEffect(() => {
+    listMentors().then(setMentors).catch(() => setMentors([]))
+    listStudents().then(setMentees).catch(() => setMentees([]))
+  }, [])
+
+  const canStart = !!uploaded && mentorId !== "" && menteeId !== "" && phase === "form"
 
   async function startAnalysis() {
-    if (!uploaded) return
+    if (!uploaded || !mentorId || !menteeId) return
     setPhase("analyzing")
     setErrorMessage(null)
     setStage(null)
@@ -34,8 +50,8 @@ export default function NewAnalysis() {
       let id = sessionId
       if (!id) {
         const created = await createSession({
-          student_name: studentName.trim(),
-          mentor_name: mentorName.trim(),
+          student_id: menteeId,
+          mentor_id: mentorId,
           storage_key: uploaded.storageKey,
           audio_filename: uploaded.filename,
           audio_duration: uploaded.durationSeconds,
@@ -80,26 +96,42 @@ export default function NewAnalysis() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="student">Student Name</Label>
-            <Input
-              id="student"
-              placeholder="e.g. Ahmed Khan"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
+            <Label htmlFor="mentor">Mentor</Label>
+            <Select
+              id="mentor"
+              value={mentorId}
+              onChange={(e) => setMentorId(e.target.value)}
               disabled={phase !== "form"}
               required
-            />
+            >
+              <option value="" disabled>
+                Select a mentor
+              </option>
+              {mentors.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mentor">Mentor Name</Label>
-            <Input
-              id="mentor"
-              placeholder="e.g. Ali Mentor"
-              value={mentorName}
-              onChange={(e) => setMentorName(e.target.value)}
+            <Label htmlFor="mentee">Mentee</Label>
+            <Select
+              id="mentee"
+              value={menteeId}
+              onChange={(e) => setMenteeId(e.target.value)}
               disabled={phase !== "form"}
               required
-            />
+            >
+              <option value="" disabled>
+                Select a mentee
+              </option>
+              {mentees.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
           </div>
         </CardContent>
       </Card>

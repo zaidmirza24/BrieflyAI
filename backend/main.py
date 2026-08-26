@@ -12,7 +12,7 @@ from config import AppConfig
 from core.audio_utils import check_ffmpeg
 from core.logging_utils import setup_logging
 from backend.db import ensure_indexes, get_db
-from backend.routes import dashboard, maintenance, sessions, students, uploads
+from backend.routes import dashboard, maintenance, mentors, sessions, students, uploads
 from backend.routes import auth as auth_routes
 from backend.services.cleanup_service import cleanup_stale_sessions
 
@@ -35,6 +35,7 @@ app.include_router(auth_routes.router)
 app.include_router(uploads.router)
 app.include_router(sessions.router)
 app.include_router(students.router)
+app.include_router(mentors.router)
 app.include_router(dashboard.router)
 app.include_router(maintenance.router)
 

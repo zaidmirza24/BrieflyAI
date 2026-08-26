@@ -8,6 +8,8 @@ import json
 import queue
 import threading
 
+from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pymongo.database import Database
@@ -32,12 +34,21 @@ def register_session(
     db: Database = Depends(get_db),
     _user: str = Depends(require_auth),
 ):
-    if not payload.student_name.strip() or not payload.mentor_name.strip():
-        raise HTTPException(status_code=400, detail="Student name and mentor name are required.")
+    try:
+        student_oid = ObjectId(payload.student_id)
+        mentor_oid = ObjectId(payload.mentor_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid mentee or mentor id.")
+
+    if db.students.find_one({"_id": student_oid}) is None:
+        raise HTTPException(status_code=404, detail="Mentee not found.")
+    if db.mentors.find_one({"_id": mentor_oid}) is None:
+        raise HTTPException(status_code=404, detail="Mentor not found.")
+
     result = create_session(
         db=db,
-        student_name=payload.student_name.strip(),
-        mentor_name=payload.mentor_name.strip(),
+        student_id=student_oid,
+        mentor_id=mentor_oid,
         storage_key=payload.storage_key,
         audio_filename=payload.audio_filename,
         audio_duration=payload.audio_duration,

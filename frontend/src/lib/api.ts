@@ -154,8 +154,8 @@ export interface SessionDetail {
 }
 
 export async function createSession(payload: {
-  student_name: string
-  mentor_name: string
+  student_id: string
+  mentor_id: string
   storage_key: string
   audio_filename: string
   audio_duration: number | null
@@ -258,11 +258,24 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return api.get<DashboardSummary>("/api/dashboard/summary")
 }
 
-export async function listStudents(query?: string): Promise<StudentSummary[]> {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : ""
+export async function listStudents(query?: string, mentorId?: string): Promise<StudentSummary[]> {
+  const params = new URLSearchParams()
+  if (query) params.set("q", query)
+  if (mentorId) params.set("mentor_id", mentorId)
+  const qs = params.toString() ? `?${params.toString()}` : ""
   return api.get<StudentSummary[]>(`/api/students${qs}`)
 }
 
 export async function getStudent(id: string): Promise<StudentDetail> {
   return api.get<StudentDetail>(`/api/students/${id}`)
+}
+
+export interface MentorSummary {
+  id: string
+  name: string
+}
+
+export async function listMentors(query?: string): Promise<MentorSummary[]> {
+  const qs = query ? `?q=${encodeURIComponent(query)}` : ""
+  return api.get<MentorSummary[]>(`/api/mentors${qs}`)
 }

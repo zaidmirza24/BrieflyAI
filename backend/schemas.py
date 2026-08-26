@@ -10,8 +10,8 @@ from backend.session_status import SessionStatus
 
 
 class SessionCreate(BaseModel):
-    student_name: str
-    mentor_name: str
+    student_id: str
+    mentor_id: str
     storage_key: str
     audio_filename: str
     audio_duration: float | None = None
@@ -73,4 +73,9 @@ class DashboardSummary(BaseModel):
 
 
 class StudentCreate(BaseModel):
+    name: str
+
+
+class MentorOut(BaseModel):
+    id: str
     name: str

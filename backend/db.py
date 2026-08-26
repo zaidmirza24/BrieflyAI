@@ -40,3 +40,5 @@ def ensure_indexes() -> None:
     db.sessions.create_index([("status", ASCENDING)])
     db.sessions.create_index([("created_at", ASCENDING)])
     db.sessions.create_index([("student_id", ASCENDING)])
+    db.sessions.create_index([("mentor_id", ASCENDING)])
+    db.students.create_index([("primary_mentor_id", ASCENDING)])
