@@ -64,10 +64,39 @@ export default function Dashboard() {
       {error && <p className="mt-6 text-sm text-[var(--destructive)]">{error}</p>}
 
       {!summary && !error && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
+        <>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="flex items-center gap-4 pt-6">
+                  <Skeleton className="h-11 w-11 shrink-0 rounded-lg" />
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="h-6 w-10" />
+                    <Skeleton className="h-3.5 w-24" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="mt-6">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <ul className="divide-y divide-[var(--border)]">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="flex items-center justify-between gap-4 px-6 py-3.5">
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3.5 w-44" />
+                  </div>
+                  <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </>
       )}
 
       {summary && (

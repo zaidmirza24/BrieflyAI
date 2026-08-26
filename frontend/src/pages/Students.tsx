@@ -51,11 +51,21 @@ export default function Students() {
 
       <Card className="mt-4 overflow-hidden">
         {students === null && (
-          <div className="flex flex-col gap-3 p-6">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
+          <ul className="divide-y divide-[var(--border)]">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <li key={i} className="flex items-center justify-between gap-4 px-6 py-3.5">
+                <div className="flex min-w-0 flex-col gap-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3.5 w-36 sm:hidden" />
+                </div>
+                <div className="hidden shrink-0 items-center gap-8 sm:flex">
+                  <Skeleton className="h-3.5 w-20" />
+                  <Skeleton className="h-3.5 w-8" />
+                  <Skeleton className="h-3.5 w-24" />
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
 
         {students && students.length === 0 && (

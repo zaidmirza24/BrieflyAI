@@ -36,10 +36,41 @@ export default function StudentProfile() {
       {error && <p className="mt-4 text-sm text-[var(--destructive)]">{error}</p>}
 
       {!student && !error && (
-        <div className="mt-4 flex flex-col gap-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <>
+          <Card className="mt-4">
+            <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-3.5 w-32" />
+              </div>
+              <div className="flex gap-6 sm:gap-8">
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-6 w-8" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Skeleton className="mt-8 h-4 w-32" />
+          <div className="mt-3 flex flex-col gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="flex items-center justify-between gap-4 pt-6">
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3.5 w-44" />
+                  </div>
+                  <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {student && (
