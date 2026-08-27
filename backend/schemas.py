@@ -79,3 +79,4 @@ class StudentCreate(BaseModel):
 class MentorOut(BaseModel):
     id: str
     name: str
+    area: str | None = None

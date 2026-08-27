@@ -273,9 +273,13 @@ export async function getStudent(id: string): Promise<StudentDetail> {
 export interface MentorSummary {
   id: string
   name: string
+  area: string | null
 }
 
-export async function listMentors(query?: string): Promise<MentorSummary[]> {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : ""
+export async function listMentors(query?: string, area?: string): Promise<MentorSummary[]> {
+  const params = new URLSearchParams()
+  if (query) params.set("q", query)
+  if (area) params.set("area", area)
+  const qs = params.toString() ? `?${params.toString()}` : ""
   return api.get<MentorSummary[]>(`/api/mentors${qs}`)
 }

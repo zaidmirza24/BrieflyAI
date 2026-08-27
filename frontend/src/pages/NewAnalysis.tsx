@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { LOCATIONS } from "@/lib/locations"
 import {
   ApiError,
   createSession,
@@ -24,8 +25,12 @@ export default function NewAnalysis() {
   const navigate = useNavigate()
   const [mentors, setMentors] = useState<MentorSummary[]>([])
   const [mentees, setMentees] = useState<StudentSummary[]>([])
-  const [mentorsLoading, setMentorsLoading] = useState(true)
+  const [mentorsLoading, setMentorsLoading] = useState(false)
   const [menteesLoading, setMenteesLoading] = useState(false)
+  // Cascade: location -> mentor -> mentee. Each step gates the next. When the
+  // mentor panel ships, a signed-in mentor's own area/identity will preselect
+  // the first two steps and this page will jump straight to the mentee picker.
+  const [location, setLocation] = useState("")
   const [mentorId, setMentorId] = useState("")
   const [menteeId, setMenteeId] = useState("")
   const [uploaded, setUploaded] = useState<UploadedAudio | null>(null)
@@ -35,12 +40,20 @@ export default function NewAnalysis() {
   const [stage, setStage] = useState<AnalysisStage | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Mentors are scoped to the chosen location (their `area`).
   useEffect(() => {
-    listMentors()
+    if (!location) {
+      setMentors([])
+      setMentorId("")
+      return
+    }
+    setMentorsLoading(true)
+    setMentorId("")
+    listMentors(undefined, location)
       .then(setMentors)
       .catch(() => setMentors([]))
       .finally(() => setMentorsLoading(false))
-  }, [])
+  }, [location])
 
   // Mentees are scoped to the selected mentor -- picking a mentor is the
   // gate for which mentees can be chosen, per the sheet's assignments.
@@ -116,37 +129,65 @@ export default function NewAnalysis() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mentor">Mentor</Label>
+            <Label htmlFor="location">Location</Label>
             <Select
-              id="mentor"
-              value={mentorId}
-              onChange={(e) => setMentorId(e.target.value)}
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
               disabled={phase !== "form"}
-              loading={mentorsLoading}
               required
             >
               <option value="" disabled>
-                {mentorsLoading ? "Loading mentors…" : "Select a mentor"}
+                Select a location
               </option>
-              {mentors.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+              {LOCATIONS.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
                 </option>
               ))}
             </Select>
           </div>
+
+          {location && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mentor">Mentor</Label>
+              <Select
+                id="mentor"
+                value={mentorId}
+                onChange={(e) => setMentorId(e.target.value)}
+                disabled={phase !== "form"}
+                loading={mentorsLoading}
+                required
+              >
+                <option value="" disabled>
+                  {mentorsLoading
+                    ? "Loading mentors…"
+                    : mentors.length
+                      ? "Select a mentor"
+                      : `No mentors in ${location} yet`}
+                </option>
+                {mentors.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          {mentorId && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mentee">Mentee</Label>
             <Select
               id="mentee"
               value={menteeId}
               onChange={(e) => setMenteeId(e.target.value)}
-              disabled={phase !== "form" || !mentorId}
+              disabled={phase !== "form"}
               loading={menteesLoading}
               required
             >
               <option value="" disabled>
-                {menteesLoading ? "Loading mentees…" : mentorId ? "Select a mentee" : "Select a mentor first"}
+                {menteesLoading ? "Loading mentees…" : "Select a mentee"}
               </option>
               {mentees.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -155,6 +196,7 @@ export default function NewAnalysis() {
               ))}
             </Select>
           </div>
+          )}
         </CardContent>
       </Card>
 
