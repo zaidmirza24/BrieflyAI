@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ClipboardList,
+  GraduationCap,
   Handshake,
   Lightbulb,
   Sparkles,
@@ -31,6 +32,7 @@ interface Insights {
   mentee_commitments: string[]
   action_items: string[]
   important_points: string[]
+  mentor_suggestions: string[]
 }
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
@@ -139,6 +141,7 @@ export function ResultsPanel({ insights }: { insights: Insights }) {
 
       <SectionCard title="Action Items" icon={CheckCircle2} items={insights.action_items} variant="accent" />
       <SectionCard title="Important Points" icon={ClipboardList} items={insights.important_points} />
+      <SectionCard title="Suggestions for Mentor" icon={GraduationCap} items={insights.mentor_suggestions} />
     </div>
   )
 }

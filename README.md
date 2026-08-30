@@ -184,7 +184,8 @@ correctly once the base language is forced correctly.
   "mentor_advice": [],
   "mentee_commitments": [],
   "action_items": [],
-  "important_points": []
+  "important_points": [],
+  "mentor_suggestions": []
 }
 ```
 Keys always stay in English for consistent parsing; the text *values* follow

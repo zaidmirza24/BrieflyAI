@@ -32,6 +32,7 @@ INSIGHTS_SCHEMA = {
     "mentee_commitments": [],
     "action_items": [],
     "important_points": [],
+    "mentor_suggestions": [],
 }
 
 _BASE_SYSTEM_PROMPT = """You are analyzing a transcript of a mentor-mentee (or \
@@ -75,7 +76,8 @@ language you write the values in):
   "mentor_advice": ["list of distinct pieces of advice the mentor gave"],
   "mentee_commitments": ["list of things the mentee committed to doing"],
   "action_items": ["concrete, actionable next steps, phrased imperatively"],
-  "important_points": ["any other significant details discussed by the mentor, student, or parent -- e.g. family circumstances, attendance issues, exam results"]
+  "important_points": ["any other significant details discussed by the mentor, student, or parent -- e.g. family circumstances, attendance issues, exam results"],
+  "mentor_suggestions": ["specific, constructive suggestions for how the MENTOR could improve their mentoring of THIS particular mentee going forward -- e.g. follow-up questions they should have asked, topics they glossed over, communication style, checking in on commitments from prior calls, tailoring advice to the student's specific situation"]
 }
 
 Rules:
