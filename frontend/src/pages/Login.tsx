@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { setCredentials } from "@/lib/auth"
+import { setSession } from "@/lib/auth"
+import { ApiError, login } from "@/lib/api"
 
 export default function Login() {
   const [username, setUsername] = useState("")
@@ -19,18 +20,16 @@ export default function Login() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    setCredentials(username, password)
     try {
-      const res = await fetch("/api/auth/check", {
-        headers: { Authorization: `Basic ${btoa(`${username}:${password}`)}` },
-      })
-      if (!res.ok) {
-        setError("Invalid username or password.")
-        return
-      }
+      const res = await login(username, password)
+      setSession(res.token, res.role, res.username)
       navigate("/")
-    } catch {
-      setError("Could not reach the server. Please try again.")
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Invalid username or password.")
+      } else {
+        setError("Could not reach the server. Please try again.")
+      }
     } finally {
       setLoading(false)
     }

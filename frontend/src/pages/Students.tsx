@@ -4,9 +4,12 @@ import { ArrowRight, Plus, Search, Users } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { listStudents, type StudentSummary } from "@/lib/api"
+import { LOCATIONS } from "@/lib/locations"
+import { isAdmin } from "@/lib/auth"
+import { listMentors, listStudents, type MentorSummary, type StudentSummary } from "@/lib/api"
 
 function formatDate(iso: string | null) {
   if (!iso) return "—"
@@ -14,23 +17,47 @@ function formatDate(iso: string | null) {
 }
 
 export default function Students() {
+  const admin = isAdmin()
   const [students, setStudents] = useState<StudentSummary[] | null>(null)
   const [query, setQuery] = useState("")
+  const [location, setLocation] = useState("")
+  const [mentorId, setMentorId] = useState("")
+  const [mentors, setMentors] = useState<MentorSummary[]>([])
+
+  // Admin mentor filter is scoped to the chosen location.
+  useEffect(() => {
+    if (!admin) return
+    setMentorId("")
+    if (!location) {
+      setMentors([])
+      return
+    }
+    listMentors(undefined, location)
+      .then(setMentors)
+      .catch(() => setMentors([]))
+  }, [location, admin])
 
   useEffect(() => {
     const handle = setTimeout(() => {
-      listStudents(query || undefined).then(setStudents)
+      setStudents(null)
+      listStudents({
+        query: query || undefined,
+        area: admin && !mentorId ? location || undefined : undefined,
+        mentorId: admin ? mentorId || undefined : undefined,
+      }).then(setStudents)
     }, 200)
     return () => clearTimeout(handle)
-  }, [query])
+  }, [query, location, mentorId, admin])
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{admin ? "Mentees" : "My Mentees"}</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Every student you've analyzed a mentor session for.
+            {admin
+              ? "Every mentee across the programme."
+              : "The mentees assigned to you."}
           </p>
         </div>
         <Link to="/new" className={buttonVariants({ variant: "accent" })}>
@@ -39,14 +66,47 @@ export default function Students() {
         </Link>
       </div>
 
-      <div className="relative mt-6 max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-        <Input
-          placeholder="Search students…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-9"
-        />
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative sm:max-w-xs sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            placeholder="Search mentees…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {admin && (
+          <div className="flex gap-3 sm:w-auto">
+            <Select
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="sm:w-40"
+              aria-label="Filter by location"
+            >
+              <option value="">All locations</option>
+              {LOCATIONS.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={mentorId}
+              onChange={(e) => setMentorId(e.target.value)}
+              className="sm:w-48"
+              disabled={!location}
+              aria-label="Filter by mentor"
+            >
+              <option value="">{location ? "All mentors" : "All mentors"}</option>
+              {mentors.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
       <Card className="mt-4 overflow-hidden">
@@ -71,8 +131,8 @@ export default function Students() {
         {students && students.length === 0 && (
           <EmptyState
             icon={Users}
-            title={query ? "No students match your search" : "No students yet"}
-            description={query ? "Try a different name." : "Run your first analysis to see students here."}
+            title={query ? "No mentees match your search" : "No mentees yet"}
+            description={query ? "Try a different name." : "Run your first analysis to see mentees here."}
             action={
               !query ? (
                 <Link to="/new" className={buttonVariants({ variant: "accent", size: "sm" })}>
@@ -97,6 +157,7 @@ export default function Students() {
                       <p className="truncate text-sm font-medium text-[var(--foreground)]">{s.name}</p>
                       <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">
                         Mentor: {s.mentor_name ?? "—"}
+                        {s.mentor_area ? ` · ${s.mentor_area}` : ""}
                       </p>
                       <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                         {s.analysis_count} {s.analysis_count === 1 ? "session" : "sessions"} · Last{" "}
@@ -114,8 +175,9 @@ export default function Students() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
-                    <th className="px-6 py-3 font-medium">Student</th>
+                    <th className="px-6 py-3 font-medium">Mentee</th>
                     <th className="px-6 py-3 font-medium">Mentor</th>
+                    {admin && <th className="px-6 py-3 font-medium">Location</th>}
                     <th className="px-6 py-3 font-medium">Analyses</th>
                     <th className="px-6 py-3 font-medium">Last Analysis</th>
                   </tr>
@@ -132,6 +194,9 @@ export default function Students() {
                         </Link>
                       </td>
                       <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.mentor_name ?? "—"}</td>
+                      {admin && (
+                        <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.mentor_area ?? "—"}</td>
+                      )}
                       <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.analysis_count}</td>
                       <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
                     </tr>

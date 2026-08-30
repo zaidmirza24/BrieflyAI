@@ -8,9 +8,13 @@ Safe to re-run: upserts by name, so it will not create duplicates and will
 refresh profile fields if the sheet changes. It never touches `sessions`.
 
 Each mentee's `primary_mentor_id` records the pairing exactly as laid out on
-the sheet (mentors are followed by their assigned block of mentees) -- it is
-informational only (e.g. for later default-filtering a mentee dropdown by
-mentor); the two dropdowns in the UI remain independently selectable.
+the sheet (mentors are followed by their assigned block of mentees). This is
+now the authoritative assignment: the mentor panel scopes a mentor to exactly
+the mentees whose `primary_mentor_id` points at their record, and admins can
+reassign via PATCH /api/students/{id}.
+
+This script does NOT create login accounts -- an admin provisions those from
+the Mentors screen (POST /api/mentors/{id}/account).
 """
 
 import datetime

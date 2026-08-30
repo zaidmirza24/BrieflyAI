@@ -53,6 +53,7 @@ class StudentOut(BaseModel):
     id: str
     name: str
     mentor_name: str | None
+    mentor_area: str | None = None
     analysis_count: int
     last_analysis_at: datetime.datetime | None
 
@@ -74,9 +75,66 @@ class DashboardSummary(BaseModel):
 
 class StudentCreate(BaseModel):
     name: str
+    primary_mentor_id: str | None = None  # admin may assign on create; ignored for mentors (self-assigned)
 
 
 class MentorOut(BaseModel):
     id: str
     name: str
     area: str | None = None
+
+
+class MentorAdminOut(MentorOut):
+    gender: str | None = None
+    contact: str | None = None
+    education: str | None = None
+    mentee_count: int = 0
+    account_username: str | None = None  # None -> no login provisioned yet
+
+
+class MentorCreate(BaseModel):
+    name: str
+    area: str
+    gender: str | None = None
+    contact: str | None = None
+    education: str | None = None
+
+
+class MentorUpdate(BaseModel):
+    name: str | None = None
+    area: str | None = None
+    gender: str | None = None
+    contact: str | None = None
+    education: str | None = None
+
+
+class MentorAccountCreate(BaseModel):
+    username: str
+
+
+class MentorAccountOut(BaseModel):
+    username: str
+    temp_password: str  # shown once, on create / reset — never stored in clear
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+    role: str
+    username: str
+
+
+class MeResponse(BaseModel):
+    username: str
+    role: str
+    mentor_id: str | None = None
+    mentor_name: str | None = None
+    area: str | None = None
+
+
+class StudentUpdate(BaseModel):
+    primary_mentor_id: str | None = None

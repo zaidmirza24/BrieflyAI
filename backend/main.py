@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from config import AppConfig
 from core.audio_utils import check_ffmpeg
 from core.logging_utils import setup_logging
-from backend.db import ensure_indexes, get_db
+from backend.db import ensure_admin_user, ensure_indexes, get_db
 from backend.routes import dashboard, maintenance, mentors, sessions, students, uploads
 from backend.routes import auth as auth_routes
 from backend.services.cleanup_service import cleanup_stale_sessions
@@ -44,8 +44,12 @@ app.include_router(maintenance.router)
 def on_startup() -> None:
     try:
         ensure_indexes()
+        ensure_admin_user()
     except Exception as e:
         logger.warning("Could not connect to MongoDB on startup: %s", e)
+
+    if cfg.jwt_secret == "dev-insecure-change-me":
+        logger.warning("JWT_SECRET is unset — using the insecure dev default. Set JWT_SECRET in production.")
 
     try:
         check_ffmpeg()

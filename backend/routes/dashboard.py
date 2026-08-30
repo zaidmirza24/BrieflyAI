@@ -1,9 +1,13 @@
-"""Dashboard summary: totals + recent analyses."""
+"""Dashboard summary: totals + recent analyses, scoped to the caller.
+
+Admins see project-wide numbers; a mentor sees only their own mentees and
+sessions.
+"""
 
 from fastapi import APIRouter, Depends
 from pymongo.database import Database
 
-from backend.auth import require_auth
+from backend.auth import Principal, get_principal
 from backend.db import get_db
 from backend.schemas import DashboardSummary, SessionSummaryOut
 
@@ -11,10 +15,17 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/summary", response_model=DashboardSummary)
-def get_summary(db: Database = Depends(get_db), _user: str = Depends(require_auth)):
-    total_students = db.students.count_documents({})
-    total_analyses = db.sessions.count_documents({})
-    recent = list(db.sessions.find().sort("created_at", -1).limit(5))
+def get_summary(db: Database = Depends(get_db), principal: Principal = Depends(get_principal)):
+    student_filter: dict = {}
+    session_filter: dict = {}
+    if not principal.is_admin:
+        mentor_oid = principal.mentor_oid()
+        student_filter = {"primary_mentor_id": mentor_oid}
+        session_filter = {"mentor_id": mentor_oid}
+
+    total_students = db.students.count_documents(student_filter)
+    total_analyses = db.sessions.count_documents(session_filter)
+    recent = list(db.sessions.find(session_filter).sort("created_at", -1).limit(5))
 
     recent_out = []
     for doc in recent:

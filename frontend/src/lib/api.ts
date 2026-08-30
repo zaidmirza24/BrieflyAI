@@ -44,6 +44,51 @@ export const api = {
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: "PATCH",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+}
+
+export interface LoginResponse {
+  token: string
+  role: "admin" | "mentor"
+  username: string
+}
+
+export async function login(username: string, password: string): Promise<LoginResponse> {
+  // Deliberately not routed through `request()` — a 401 here means "wrong
+  // password", not "session expired", so it must not trigger the redirect.
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) {
+    let message = "Could not sign in. Please try again."
+    try {
+      const body = await res.json()
+      if (body?.detail) message = body.detail
+    } catch {
+      // keep default
+    }
+    throw new ApiError(res.status, message)
+  }
+  return res.json() as Promise<LoginResponse>
+}
+
+export interface Me {
+  username: string
+  role: "admin" | "mentor"
+  mentor_id: string | null
+  mentor_name: string | null
+  area: string | null
+}
+
+export async function getMe(): Promise<Me> {
+  return api.get<Me>("/api/auth/me")
 }
 
 export interface PresignResponse {
@@ -246,6 +291,7 @@ export interface StudentSummary {
   id: string
   name: string
   mentor_name: string | null
+  mentor_area: string | null
   analysis_count: number
   last_analysis_at: string | null
 }
@@ -258,10 +304,13 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return api.get<DashboardSummary>("/api/dashboard/summary")
 }
 
-export async function listStudents(query?: string, mentorId?: string): Promise<StudentSummary[]> {
+export async function listStudents(opts: { query?: string; mentorId?: string; area?: string } = {}): Promise<
+  StudentSummary[]
+> {
   const params = new URLSearchParams()
-  if (query) params.set("q", query)
-  if (mentorId) params.set("mentor_id", mentorId)
+  if (opts.query) params.set("q", opts.query)
+  if (opts.mentorId) params.set("mentor_id", opts.mentorId)
+  if (opts.area) params.set("area", opts.area)
   const qs = params.toString() ? `?${params.toString()}` : ""
   return api.get<StudentSummary[]>(`/api/students${qs}`)
 }
@@ -270,16 +319,58 @@ export async function getStudent(id: string): Promise<StudentDetail> {
   return api.get<StudentDetail>(`/api/students/${id}`)
 }
 
+export async function reassignStudent(id: string, primaryMentorId: string | null): Promise<StudentSummary> {
+  return api.patch<StudentSummary>(`/api/students/${id}`, { primary_mentor_id: primaryMentorId })
+}
+
 export interface MentorSummary {
   id: string
   name: string
   area: string | null
 }
 
-export async function listMentors(query?: string, area?: string): Promise<MentorSummary[]> {
+export interface MentorAdmin extends MentorSummary {
+  gender: string | null
+  contact: string | null
+  education: string | null
+  mentee_count: number
+  account_username: string | null
+}
+
+export async function listMentors(query?: string, area?: string): Promise<MentorAdmin[]> {
   const params = new URLSearchParams()
   if (query) params.set("q", query)
   if (area) params.set("area", area)
   const qs = params.toString() ? `?${params.toString()}` : ""
-  return api.get<MentorSummary[]>(`/api/mentors${qs}`)
+  return api.get<MentorAdmin[]>(`/api/mentors${qs}`)
+}
+
+export async function createMentor(payload: {
+  name: string
+  area: string
+  gender?: string | null
+  contact?: string | null
+  education?: string | null
+}): Promise<MentorSummary> {
+  return api.post<MentorSummary>("/api/mentors", payload)
+}
+
+export async function updateMentor(
+  id: string,
+  payload: Partial<{ name: string; area: string; gender: string; contact: string; education: string }>,
+): Promise<MentorAdmin> {
+  return api.patch<MentorAdmin>(`/api/mentors/${id}`, payload)
+}
+
+export interface MentorAccount {
+  username: string
+  temp_password: string
+}
+
+export async function createMentorAccount(mentorId: string, username: string): Promise<MentorAccount> {
+  return api.post<MentorAccount>(`/api/mentors/${mentorId}/account`, { username })
+}
+
+export async function resetMentorAccount(mentorId: string): Promise<MentorAccount> {
+  return api.post<MentorAccount>(`/api/mentors/${mentorId}/account/reset`)
 }

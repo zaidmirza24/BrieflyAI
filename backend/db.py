@@ -42,3 +42,33 @@ def ensure_indexes() -> None:
     db.sessions.create_index([("student_id", ASCENDING)])
     db.sessions.create_index([("mentor_id", ASCENDING)])
     db.students.create_index([("primary_mentor_id", ASCENDING)])
+    db.users.create_index([("username", ASCENDING)], unique=True)
+    db.users.create_index([("mentor_id", ASCENDING)])
+    db.mentors.create_index([("area", ASCENDING)])
+
+
+def ensure_admin_user() -> None:
+    """Seed (or refresh the password of) the env-configured admin so there is
+    always exactly one way in even on a fresh database."""
+    import datetime
+
+    from backend.security import hash_password
+
+    db = get_db()
+    now = datetime.datetime.now(datetime.timezone.utc)
+    existing = db.users.find_one({"username": _cfg.admin_username})
+    if existing is None:
+        db.users.insert_one(
+            {
+                "username": _cfg.admin_username,
+                "password_hash": hash_password(_cfg.admin_password),
+                "role": "admin",
+                "mentor_id": None,
+                "disabled": False,
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
+        logger.info("Seeded admin user %r", _cfg.admin_username)
+    elif existing.get("role") != "admin":
+        db.users.update_one({"_id": existing["_id"]}, {"$set": {"role": "admin", "updated_at": now}})

@@ -57,6 +57,12 @@ class AppConfig:
     admin_username: str = os.environ.get("ADMIN_USERNAME", "admin")
     admin_password: str = os.environ.get("ADMIN_PASSWORD", "admin123")
     cors_origin: str = os.environ.get("CORS_ORIGIN", "http://localhost:5173")
+
+    # -- Auth (JWT) -- bearer tokens issued by POST /api/auth/login. Set
+    # JWT_SECRET in every real deployment; the default only exists so local
+    # dev works out of the box (startup logs a warning when it's in use).
+    jwt_secret: str = os.environ.get("JWT_SECRET", "dev-insecure-change-me")
+    jwt_ttl_seconds: int = int(os.environ.get("JWT_TTL_SECONDS", str(60 * 60 * 12)))
     max_upload_mb: int = int(os.environ.get("MAX_UPLOAD_MB", "500"))
 
     # -- Object storage (Backblaze B2, S3-compatible) -- TEMPORARY staging only:

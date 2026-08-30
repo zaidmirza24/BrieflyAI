@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react"
 import { Navigate, NavLink, Route, BrowserRouter, Routes, useLocation } from "react-router-dom"
-import { LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
+import { IdCard, LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import Students from "@/pages/Students"
 import StudentProfile from "@/pages/StudentProfile"
 import NewAnalysis from "@/pages/NewAnalysis"
 import AnalysisView from "@/pages/AnalysisView"
+import Mentors from "@/pages/Mentors"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { isLoggedIn, clearCredentials } from "@/lib/auth"
+import { isLoggedIn, isAdmin, clearCredentials } from "@/lib/auth"
 import { getEffectiveTheme, setTheme, subscribeToSystemTheme, type Theme } from "@/lib/theme"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -17,10 +18,20 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/students", label: "Students", icon: Users, end: false },
-]
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  if (!isLoggedIn()) return <Navigate to="/login" replace />
+  if (!isAdmin()) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function navItems() {
+  const admin = isAdmin()
+  return [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+    { to: "/students", label: admin ? "Mentees" : "My Mentees", icon: Users, end: false },
+    ...(admin ? [{ to: "/mentors", label: "Mentors", icon: IdCard, end: false }] : []),
+  ]
+}
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
@@ -42,7 +53,7 @@ function Brand({ compact }: { compact?: boolean }) {
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => (
+      {navItems().map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -209,6 +220,7 @@ export default function App() {
         <Route path="/" element={<Protected><Dashboard /></Protected>} />
         <Route path="/students" element={<Protected><Students /></Protected>} />
         <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
+        <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
         <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
         <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
