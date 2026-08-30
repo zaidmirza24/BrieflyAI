@@ -46,3 +46,15 @@ const STATUS_LABEL: Record<string, string> = {
 export function StatusBadge({ status }: { status: string }) {
   return <Badge variant={STATUS_VARIANT[status] ?? "neutral"}>{STATUS_LABEL[status] ?? status}</Badge>
 }
+
+const MENTEE_STATUS: Record<string, { label: string; variant: BadgeProps["variant"] }> = {
+  active: { label: "Active", variant: "success" },
+  paused: { label: "Paused", variant: "warning" },
+  graduated: { label: "Graduated", variant: "accent" },
+  dropped: { label: "Dropped", variant: "neutral" },
+}
+
+export function MenteeStatusBadge({ status }: { status: string }) {
+  const s = MENTEE_STATUS[status] ?? { label: status, variant: "neutral" as const }
+  return <Badge variant={s.variant}>{s.label}</Badge>
+}

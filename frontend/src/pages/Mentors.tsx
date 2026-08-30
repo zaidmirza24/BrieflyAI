@@ -3,6 +3,7 @@ import { Check, Copy, IdCard, KeyRound, Plus, Search, UserPlus, X } from "lucide
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -200,9 +201,10 @@ export default function Mentors() {
       {showAdd && (
         <AddMentorDialog
           onClose={() => setShowAdd(false)}
-          onCreated={() => {
+          onCreated={(cred) => {
             setShowAdd(false)
             reload()
+            if (cred) setCredential(cred)
           }}
         />
       )}
@@ -292,26 +294,50 @@ function MentorRow({
   )
 }
 
-function AddMentorDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function slugFromName(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "")
+    .slice(0, 32)
+}
+
+function AddMentorDialog({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void
+  onCreated: (credential?: MentorAccount) => void
+}) {
   const [name, setName] = useState("")
   const [area, setArea] = useState(LOCATIONS[0] as string)
   const [contact, setContact] = useState("")
   const [education, setEducation] = useState("")
+  const [username, setUsername] = useState("")
+  const [usernameEdited, setUsernameEdited] = useState(false)
+  const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Keep the username in sync with the name until the admin edits it directly.
+  const effectiveUsername = usernameEdited ? username : slugFromName(name)
+  const wantsLogin = effectiveUsername.length > 0 || password.length > 0
+  const loginIncomplete = wantsLogin && (effectiveUsername.length < 3 || password.length < 8)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
     try {
-      await createMentor({
+      const created = await createMentor({
         name: name.trim(),
         area,
         contact: contact.trim() || null,
         education: education.trim() || null,
+        username: wantsLogin ? effectiveUsername : undefined,
+        password: wantsLogin ? password : undefined,
       })
-      onCreated()
+      onCreated(created.account ?? undefined)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not add the mentor.")
       setBusy(false)
@@ -343,12 +369,43 @@ function AddMentorDialog({ onClose, onCreated }: { onClose: () => void; onCreate
           <Label htmlFor="m-edu">Education (optional)</Label>
           <Input id="m-edu" value={education} onChange={(e) => setEducation(e.target.value)} />
         </div>
+
+        <div className="mt-1 border-t border-[var(--border)] pt-3">
+          <p className="text-xs font-medium text-[var(--muted-foreground)]">
+            Login (optional — leave blank to add later)
+          </p>
+          <div className="mt-2 flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="m-user">Username</Label>
+              <Input
+                id="m-user"
+                value={effectiveUsername}
+                onChange={(e) => {
+                  setUsernameEdited(true)
+                  setUsername(e.target.value)
+                }}
+                placeholder="jane.doe"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="m-pass">Password</Label>
+              <PasswordInput
+                id="m-pass"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+        </div>
+
         {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
         <div className="mt-2 flex justify-end gap-2">
           <button type="button" onClick={onClose} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
             Cancel
           </button>
-          <Button type="submit" variant="accent" size="sm" disabled={busy || !name.trim()}>
+          <Button type="submit" variant="accent" size="sm" disabled={busy || !name.trim() || loginIncomplete}>
             {busy ? "Adding…" : "Add mentor"}
           </Button>
         </div>
@@ -372,15 +429,18 @@ function ProvisionLoginDialog({
     .replace(/^\.+|\.+$/g, "")
     .slice(0, 32)
   const [username, setUsername] = useState(suggested)
+  const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const passwordInvalid = password.length > 0 && password.length < 8
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
     try {
-      onCreated(await createMentorAccount(mentor.id, username.trim()))
+      onCreated(await createMentorAccount(mentor.id, username.trim(), password || undefined))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create the login.")
       setBusy(false)
@@ -394,7 +454,20 @@ function ProvisionLoginDialog({
           <Label htmlFor="acc-user">Username</Label>
           <Input id="acc-user" autoFocus value={username} onChange={(e) => setUsername(e.target.value)} required />
           <p className="text-xs text-[var(--muted-foreground)]">
-            3–32 characters: letters, digits, dot, dash, underscore. A one-time password is generated on save.
+            3–32 characters: letters, digits, dot, dash, underscore.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="acc-pass">Password</Label>
+          <PasswordInput
+            id="acc-pass"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Leave blank to generate one"
+            autoComplete="new-password"
+          />
+          <p className="text-xs text-[var(--muted-foreground)]">
+            At least 8 characters. If left blank, a one-time password is generated on save.
           </p>
         </div>
         {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
@@ -402,7 +475,12 @@ function ProvisionLoginDialog({
           <button type="button" onClick={onClose} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
             Cancel
           </button>
-          <Button type="submit" variant="accent" size="sm" disabled={busy || username.trim().length < 3}>
+          <Button
+            type="submit"
+            variant="accent"
+            size="sm"
+            disabled={busy || username.trim().length < 3 || passwordInvalid}
+          >
             {busy ? "Creating…" : "Create login"}
           </Button>
         </div>

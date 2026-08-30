@@ -5,7 +5,7 @@ details directly."""
 
 import logging
 
-from pymongo import ASCENDING, MongoClient
+from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.database import Database
 
 from config import AppConfig
@@ -42,9 +42,13 @@ def ensure_indexes() -> None:
     db.sessions.create_index([("student_id", ASCENDING)])
     db.sessions.create_index([("mentor_id", ASCENDING)])
     db.students.create_index([("primary_mentor_id", ASCENDING)])
+    db.students.create_index([("status", ASCENDING)])
+    db.students.create_index([("area", ASCENDING)])
     db.users.create_index([("username", ASCENDING)], unique=True)
     db.users.create_index([("mentor_id", ASCENDING)])
     db.mentors.create_index([("area", ASCENDING)])
+    db.assignments.create_index([("student_id", ASCENDING), ("created_at", DESCENDING)])
+    db.assignments.create_index([("created_at", DESCENDING)])
 
 
 def ensure_admin_user() -> None:

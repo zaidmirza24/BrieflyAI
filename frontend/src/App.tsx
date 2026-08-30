@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Navigate, NavLink, Route, BrowserRouter, Routes, useLocation } from "react-router-dom"
-import { IdCard, LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
+import { ClipboardList, IdCard, LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import Students from "@/pages/Students"
@@ -8,6 +8,7 @@ import StudentProfile from "@/pages/StudentProfile"
 import NewAnalysis from "@/pages/NewAnalysis"
 import AnalysisView from "@/pages/AnalysisView"
 import Mentors from "@/pages/Mentors"
+import Assignments from "@/pages/Assignments"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { isLoggedIn, isAdmin, clearCredentials } from "@/lib/auth"
@@ -29,7 +30,12 @@ function navItems() {
   return [
     { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
     { to: "/students", label: admin ? "Mentees" : "My Mentees", icon: Users, end: false },
-    ...(admin ? [{ to: "/mentors", label: "Mentors", icon: IdCard, end: false }] : []),
+    ...(admin
+      ? [
+          { to: "/assignments", label: "Assignments", icon: ClipboardList, end: false },
+          { to: "/mentors", label: "Mentors", icon: IdCard, end: false },
+        ]
+      : []),
   ]
 }
 
@@ -220,6 +226,7 @@ export default function App() {
         <Route path="/" element={<Protected><Dashboard /></Protected>} />
         <Route path="/students" element={<Protected><Students /></Protected>} />
         <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
+        <Route path="/assignments" element={<RequireAdmin><AppShell><Assignments /></AppShell></RequireAdmin>} />
         <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
         <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
         <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />

@@ -13,13 +13,14 @@ from pymongo.database import Database
 from pymongo.errors import DuplicateKeyError
 
 from backend.auth import require_admin
+from backend.constants import MENTEE_ACTIVE_STATUSES
 from backend.db import get_db
 from backend.schemas import (
     MentorAccountCreate,
     MentorAccountOut,
     MentorAdminOut,
     MentorCreate,
-    MentorOut,
+    MentorCreated,
     MentorUpdate,
 )
 from backend.security import generate_temp_password, hash_password
@@ -36,9 +37,51 @@ def _admin_out(db: Database, m: dict) -> MentorAdminOut:
         gender=m.get("gender"),
         contact=m.get("contact"),
         education=m.get("education"),
-        mentee_count=db.students.count_documents({"primary_mentor_id": m["_id"]}),
+        capacity=m.get("capacity"),
+        mentee_count=db.students.count_documents(
+            {"primary_mentor_id": m["_id"], "status": {"$in": list(MENTEE_ACTIVE_STATUSES)}}
+        ),
         account_username=account["username"] if account else None,
     )
+
+
+_USERNAME_RE = re.compile(r"[a-z0-9._-]{3,32}")
+
+
+def _normalise_username(username: str) -> str:
+    username = username.strip().lower()
+    if not _USERNAME_RE.fullmatch(username):
+        raise HTTPException(
+            status_code=400,
+            detail="Username must be 3-32 chars: letters, digits, dot, dash, underscore.",
+        )
+    return username
+
+
+def _provision_account(db: Database, mentor: dict, username: str, password: str | None) -> MentorAccountOut:
+    """Create the mentor's login. ``password`` None -> generate a one-time one
+    (returned once); otherwise the admin-set password is used and echoed back
+    so it can be handed over."""
+    if db.users.find_one({"mentor_id": mentor["_id"], "role": "mentor"}):
+        raise HTTPException(status_code=409, detail="This mentor already has a login. Reset the password instead.")
+    username = _normalise_username(username)
+    secret = password or generate_temp_password()
+    now = datetime.datetime.now(datetime.timezone.utc)
+    try:
+        db.users.insert_one(
+            {
+                "username": username,
+                "password_hash": hash_password(secret),
+                "role": "mentor",
+                "mentor_id": mentor["_id"],
+                "disabled": False,
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="That username is taken.")
+    return MentorAccountOut(username=username, temp_password=secret)
 
 
 def _get_mentor_or_404(db: Database, mentor_id: str) -> dict:
@@ -68,12 +111,23 @@ def list_mentors(
     return [_admin_out(db, m) for m in mentors]
 
 
-@router.post("", response_model=MentorOut, status_code=201)
+@router.post("", response_model=MentorCreated, status_code=201)
 def create_mentor(payload: MentorCreate, db: Database = Depends(get_db), _admin=Depends(require_admin)):
     name = payload.name.strip()
     area = payload.area.strip()
     if not name or not area:
         raise HTTPException(status_code=400, detail="Mentor name and location are required.")
+
+    # Inline login: both fields together, or neither.
+    username = (payload.username or "").strip()
+    password = payload.password or ""
+    if bool(username) != bool(password):
+        raise HTTPException(status_code=400, detail="Set both a username and a password, or leave both blank.")
+    if username:
+        username = _normalise_username(username)
+        if db.users.find_one({"username": username}):
+            raise HTTPException(status_code=409, detail="That username is taken.")
+
     now = datetime.datetime.now(datetime.timezone.utc)
     doc = {
         "name": name,
@@ -81,6 +135,7 @@ def create_mentor(payload: MentorCreate, db: Database = Depends(get_db), _admin=
         "gender": payload.gender,
         "contact": payload.contact,
         "education": payload.education,
+        "capacity": payload.capacity,
         "created_at": now,
         "updated_at": now,
     }
@@ -88,7 +143,10 @@ def create_mentor(payload: MentorCreate, db: Database = Depends(get_db), _admin=
         result = db.mentors.insert_one(doc)
     except DuplicateKeyError:
         raise HTTPException(status_code=409, detail="A mentor with that name already exists.")
-    return MentorOut(id=str(result.inserted_id), name=name, area=area)
+
+    mentor = {"_id": result.inserted_id, **doc}
+    account = _provision_account(db, mentor, username, password) if username else None
+    return MentorCreated(id=str(result.inserted_id), name=name, area=area, account=account)
 
 
 @router.patch("/{mentor_id}", response_model=MentorAdminOut)
@@ -115,30 +173,7 @@ def create_mentor_account(
     mentor_id: str, payload: MentorAccountCreate, db: Database = Depends(get_db), _admin=Depends(require_admin)
 ):
     mentor = _get_mentor_or_404(db, mentor_id)
-    if db.users.find_one({"mentor_id": mentor["_id"], "role": "mentor"}):
-        raise HTTPException(status_code=409, detail="This mentor already has a login. Reset the password instead.")
-
-    username = payload.username.strip().lower()
-    if not re.fullmatch(r"[a-z0-9._-]{3,32}", username):
-        raise HTTPException(status_code=400, detail="Username must be 3-32 chars: letters, digits, dot, dash, underscore.")
-
-    temp_password = generate_temp_password()
-    now = datetime.datetime.now(datetime.timezone.utc)
-    try:
-        db.users.insert_one(
-            {
-                "username": username,
-                "password_hash": hash_password(temp_password),
-                "role": "mentor",
-                "mentor_id": mentor["_id"],
-                "disabled": False,
-                "created_at": now,
-                "updated_at": now,
-            }
-        )
-    except DuplicateKeyError:
-        raise HTTPException(status_code=409, detail="That username is taken.")
-    return MentorAccountOut(username=username, temp_password=temp_password)
+    return _provision_account(db, mentor, payload.username, payload.password)
 
 
 @router.post("/{mentor_id}/account/reset", response_model=MentorAccountOut)

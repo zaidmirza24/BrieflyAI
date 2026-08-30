@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { FileAudio, Plus, Sparkles, Users } from "lucide-react"
+import { AlertTriangle, FileAudio, Plus, Sparkles, Users } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getDashboardSummary, type DashboardSummary } from "@/lib/api"
+import { isAdmin } from "@/lib/auth"
+import {
+  getAttentionSummary,
+  getDashboardSummary,
+  type AttentionSummary,
+  type DashboardSummary,
+} from "@/lib/api"
 
 function StatCard({
   icon: Icon,
@@ -37,14 +43,21 @@ function formatDate(iso: string) {
 }
 
 export default function Dashboard() {
+  const admin = isAdmin()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [attention, setAttention] = useState<AttentionSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getDashboardSummary()
       .then(setSummary)
       .catch(() => setError("Could not load dashboard data."))
+    getAttentionSummary().then(setAttention).catch(() => setAttention(null))
   }, [])
+
+  const attentionTotal = attention
+    ? attention.unassigned + attention.overdue + attention.paused
+    : 0
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -105,6 +118,33 @@ export default function Dashboard() {
             <StatCard icon={Users} label="Total Students" value={summary.total_students} />
             <StatCard icon={FileAudio} label="Total Analyses" value={summary.total_analyses} />
           </div>
+
+          {attention && attentionTotal > 0 && (
+            <Card className="mt-4 border-[var(--warning-border)] bg-[var(--warning-bg)]/30">
+              <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                  <p className="text-sm">
+                    {admin && attention.unassigned > 0 && (
+                      <span className="font-medium">{attention.unassigned} unassigned</span>
+                    )}
+                    {admin && attention.unassigned > 0 && (attention.overdue > 0 || attention.paused > 0) && " · "}
+                    {attention.overdue > 0 && <span>{attention.overdue} overdue for a session</span>}
+                    {attention.overdue > 0 && attention.paused > 0 && " · "}
+                    {attention.paused > 0 && <span>{attention.paused} paused</span>}
+                  </p>
+                </div>
+                {admin && (
+                  <Link
+                    to="/assignments"
+                    className="text-sm font-medium text-[var(--accent)] hover:underline"
+                  >
+                    Go to Assignments
+                  </Link>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="mt-6">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">

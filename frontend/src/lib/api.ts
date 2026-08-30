@@ -287,30 +287,82 @@ export interface DashboardSummary {
   recent_analyses: SessionSummary[]
 }
 
+export type MenteeStatus = "active" | "paused" | "graduated" | "dropped"
+export type Gender = "M" | "F" | "O"
+
 export interface StudentSummary {
   id: string
   name: string
+  gender: Gender | null
+  contact: string | null
+  std: string | null
+  school: string | null
+  area: string | null
+  status: MenteeStatus
+  cadence_days: number | null
+  notes: string | null
+  primary_mentor_id: string | null
   mentor_name: string | null
   mentor_area: string | null
   analysis_count: number
   last_analysis_at: string | null
+  overdue: boolean
+}
+
+export interface Assignment {
+  id: string
+  student_id: string
+  from_mentor_id: string | null
+  from_mentor_name: string | null
+  to_mentor_id: string | null
+  to_mentor_name: string | null
+  reason: string | null
+  by_username: string | null
+  created_at: string
 }
 
 export interface StudentDetail extends StudentSummary {
   sessions: SessionSummary[]
+  assignments: Assignment[]
+}
+
+export interface MenteeProfileInput {
+  gender?: Gender | null
+  contact?: string | null
+  std?: string | null
+  school?: string | null
+  area?: string | null
+  cadence_days?: number | null
+  notes?: string | null
+}
+
+export interface AttentionSummary {
+  unassigned: number
+  overdue: number
+  paused: number
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   return api.get<DashboardSummary>("/api/dashboard/summary")
 }
 
-export async function listStudents(opts: { query?: string; mentorId?: string; area?: string } = {}): Promise<
-  StudentSummary[]
-> {
+export async function listStudents(
+  opts: {
+    query?: string
+    mentorId?: string
+    area?: string
+    status?: MenteeStatus
+    unassigned?: boolean
+    overdue?: boolean
+  } = {},
+): Promise<StudentSummary[]> {
   const params = new URLSearchParams()
   if (opts.query) params.set("q", opts.query)
   if (opts.mentorId) params.set("mentor_id", opts.mentorId)
   if (opts.area) params.set("area", opts.area)
+  if (opts.status) params.set("status", opts.status)
+  if (opts.unassigned) params.set("unassigned", "true")
+  if (opts.overdue) params.set("overdue", "true")
   const qs = params.toString() ? `?${params.toString()}` : ""
   return api.get<StudentSummary[]>(`/api/students${qs}`)
 }
@@ -319,8 +371,52 @@ export async function getStudent(id: string): Promise<StudentDetail> {
   return api.get<StudentDetail>(`/api/students/${id}`)
 }
 
-export async function reassignStudent(id: string, primaryMentorId: string | null): Promise<StudentSummary> {
-  return api.patch<StudentSummary>(`/api/students/${id}`, { primary_mentor_id: primaryMentorId })
+export async function getAttentionSummary(): Promise<AttentionSummary> {
+  return api.get<AttentionSummary>("/api/students/attention")
+}
+
+export async function createStudent(payload: {
+  name: string
+  status?: MenteeStatus
+  primary_mentor_id?: string | null
+  assignment_reason?: string | null
+} & MenteeProfileInput): Promise<StudentSummary> {
+  return api.post<StudentSummary>("/api/students", payload)
+}
+
+export async function updateStudent(
+  id: string,
+  payload: ({ name?: string; status?: MenteeStatus } & MenteeProfileInput),
+): Promise<StudentSummary> {
+  return api.patch<StudentSummary>(`/api/students/${id}`, payload)
+}
+
+export async function reassignStudent(
+  id: string,
+  primaryMentorId: string | null,
+  reason: string,
+): Promise<StudentSummary> {
+  return api.patch<StudentSummary>(`/api/students/${id}/assignment`, {
+    primary_mentor_id: primaryMentorId,
+    reason,
+  })
+}
+
+export interface BulkAssignResult {
+  assigned: number
+  skipped: string[]
+}
+
+export async function bulkAssignStudents(
+  studentIds: string[],
+  primaryMentorId: string,
+  reason: string,
+): Promise<BulkAssignResult> {
+  return api.post<BulkAssignResult>("/api/students/assign", {
+    student_ids: studentIds,
+    primary_mentor_id: primaryMentorId,
+    reason,
+  })
 }
 
 export interface MentorSummary {
@@ -333,6 +429,7 @@ export interface MentorAdmin extends MentorSummary {
   gender: string | null
   contact: string | null
   education: string | null
+  capacity: number | null
   mentee_count: number
   account_username: string | null
 }
@@ -345,19 +442,33 @@ export async function listMentors(query?: string, area?: string): Promise<Mentor
   return api.get<MentorAdmin[]>(`/api/mentors${qs}`)
 }
 
+export interface MentorCreated extends MentorSummary {
+  account: MentorAccount | null
+}
+
 export async function createMentor(payload: {
   name: string
   area: string
   gender?: string | null
   contact?: string | null
   education?: string | null
-}): Promise<MentorSummary> {
-  return api.post<MentorSummary>("/api/mentors", payload)
+  capacity?: number | null
+  username?: string
+  password?: string
+}): Promise<MentorCreated> {
+  return api.post<MentorCreated>("/api/mentors", payload)
 }
 
 export async function updateMentor(
   id: string,
-  payload: Partial<{ name: string; area: string; gender: string; contact: string; education: string }>,
+  payload: Partial<{
+    name: string
+    area: string
+    gender: string
+    contact: string
+    education: string
+    capacity: number | null
+  }>,
 ): Promise<MentorAdmin> {
   return api.patch<MentorAdmin>(`/api/mentors/${id}`, payload)
 }
@@ -367,8 +478,15 @@ export interface MentorAccount {
   temp_password: string
 }
 
-export async function createMentorAccount(mentorId: string, username: string): Promise<MentorAccount> {
-  return api.post<MentorAccount>(`/api/mentors/${mentorId}/account`, { username })
+export async function createMentorAccount(
+  mentorId: string,
+  username: string,
+  password?: string,
+): Promise<MentorAccount> {
+  return api.post<MentorAccount>(`/api/mentors/${mentorId}/account`, {
+    username,
+    password: password || undefined,
+  })
 }
 
 export async function resetMentorAccount(mentorId: string): Promise<MentorAccount> {

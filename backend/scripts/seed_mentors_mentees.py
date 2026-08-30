@@ -11,7 +11,7 @@ Each mentee's `primary_mentor_id` records the pairing exactly as laid out on
 the sheet (mentors are followed by their assigned block of mentees). This is
 now the authoritative assignment: the mentor panel scopes a mentor to exactly
 the mentees whose `primary_mentor_id` points at their record, and admins can
-reassign via PATCH /api/students/{id}.
+reassign via PATCH /api/students/{id}/assignment (audited).
 
 This script does NOT create login accounts -- an admin provisions those from
 the Mentors screen (POST /api/mentors/{id}/account).
