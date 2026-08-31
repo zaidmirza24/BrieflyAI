@@ -113,7 +113,7 @@ export default function AnalysisView() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base" as="h2">
-                {session!.status === "FAILED" ? "Analysis failed" : "Analysing this recording…"}
+                {session!.status === "FAILED" ? "That didn't finish — let's retry" : "Working on this recording…"}
               </CardTitle>
             </CardHeader>
             <CardContent>

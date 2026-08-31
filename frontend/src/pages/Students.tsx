@@ -157,9 +157,11 @@ export default function Students() {
         {!error && students && students.length === 0 && (
           <EmptyState
             icon={Users}
-            title={query || status || location ? "No mentees match" : "No mentees yet"}
+            title={query || status || location ? "No matches for these filters" : "Add your first mentee"}
             description={
-              query || status || location ? "Try a different filter." : "Add your first mentee to get started."
+              query || status || location
+                ? "Try widening your search or clearing a filter."
+                : "Add a mentee and you can start tracking their sessions and progress."
             }
             action={
               <Button variant="accent" size="sm" onClick={() => setShowAdd(true)}>

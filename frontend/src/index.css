@@ -22,6 +22,9 @@
   --accent-foreground: #ffffff;
   --accent-bg: #f4effc;
   --accent-border: #e0d2f9;
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #a855f7 100%);
+  --ring-offset: #ffffff;
 
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
@@ -37,9 +40,9 @@
   --warning-bg: #fffbeb;
   --warning-border: #fde68a;
 
-  --shadow-sm: 0 1px 2px rgba(15, 15, 20, 0.04);
-  --shadow-md: 0 4px 12px rgba(15, 15, 20, 0.06), 0 1px 2px rgba(15, 15, 20, 0.04);
-  --shadow-lg: 0 12px 32px rgba(15, 15, 20, 0.08), 0 2px 6px rgba(15, 15, 20, 0.04);
+  --shadow-sm: 0 1px 2px rgba(79, 70, 229, 0.06);
+  --shadow-md: 0 4px 14px rgba(79, 70, 229, 0.08), 0 1px 2px rgba(15, 15, 20, 0.04);
+  --shadow-lg: 0 14px 36px rgba(79, 70, 229, 0.12), 0 2px 6px rgba(15, 15, 20, 0.05);
 
   --radius-sm: 0.5rem;
   --radius: 0.75rem;
@@ -67,6 +70,9 @@
     --accent-foreground: #1a0b2e;
     --accent-bg: #241b36;
     --accent-border: #3b2a5c;
+    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+    --brand-gradient: linear-gradient(135deg, #818cf8 0%, #a78bfa 55%, #c084fc 100%);
+    --ring-offset: #16161d;
 
     --destructive: #f87171;
     --destructive-foreground: #2a0a0a;
@@ -92,6 +98,9 @@
 
 /* Explicit user choice, wins over system preference either way */
 :root[data-theme="dark"] {
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+  --brand-gradient: linear-gradient(135deg, #818cf8 0%, #a78bfa 55%, #c084fc 100%);
+  --ring-offset: #16161d;
   --background: #0e0e13;
   --surface: #16161d;
   --foreground: #f2f2f5;
@@ -140,7 +149,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--muted);
+  background:
+    radial-gradient(60rem 60rem at 110% -10%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 60%),
+    radial-gradient(50rem 50rem at -10% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 55%),
+    var(--muted);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -164,6 +177,53 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* --- Optimistic motion: subtle, meaningful, reduced-motion safe --- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-rise { animation: rise 0.28s ease-out both; }
+.animate-pop { animation: pop 0.3s ease-out both; }
+.animate-toast-in { animation: toast-in 0.22s ease-out both; }
+
+.shimmer-bg {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 7%, transparent),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-pop,
+  .animate-toast-in { animation: none !important; }
+  .shimmer-bg::after { animation: none !important; content: none; }
 }
 
 /* Thin, unobtrusive scrollbars for transcript/results panels */

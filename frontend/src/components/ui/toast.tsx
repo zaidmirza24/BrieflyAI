@@ -42,9 +42,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={t.id}
               className={cn(
-                "pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-lg border bg-[var(--surface)] p-3 text-sm shadow-[var(--shadow-lg)]",
-                t.tone === "success" && "border-[var(--success-border)]",
-                t.tone === "error" && "border-[var(--destructive-border)]",
+                "animate-toast-in pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-lg border bg-[var(--surface)] p-3 text-sm shadow-[var(--shadow-lg)]",
+                t.tone === "success" && "border-[var(--success-border)] bg-[var(--success-bg)]",
+                t.tone === "error" && "border-[var(--destructive-border)] bg-[var(--destructive-bg)]",
                 t.tone === "info" && "border-[var(--border)]",
               )}
             >

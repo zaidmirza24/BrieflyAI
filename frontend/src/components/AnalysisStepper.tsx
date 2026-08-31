@@ -71,7 +71,7 @@ export function stepStatesForStage(stage: AnalysisStage | null, hasError: boolea
 function Icon({ status }: { status: StepStatus }) {
   if (status === "done") {
     return (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--success)] text-white text-[11px]">
+      <span className="animate-pop flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--success)] text-white text-[11px]">
         ✓
       </span>
     )
@@ -99,12 +99,23 @@ function Icon({ status }: { status: StepStatus }) {
 
 export function AnalysisStepper({ stage, hasError }: { stage: AnalysisStage | null; hasError: boolean }) {
   const states = stepStatesForStage(stage, hasError)
+  const allDone = !hasError && STEPS.every((s) => states[s.key] === "done")
   return (
+    <>
     <ol className="flex flex-col gap-3" aria-live="polite">
-      {STEPS.map((step) => {
+      {STEPS.map((step, i) => {
         const status = states[step.key]
         return (
-          <li key={step.key} className="flex items-center gap-3">
+          <li key={step.key} className="relative flex items-center gap-3">
+            {i < STEPS.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute left-[9px] top-6 h-[calc(100%-0.25rem)] w-px",
+                  status === "done" ? "bg-[var(--success)]" : "bg-[var(--border)]",
+                )}
+              />
+            )}
             <Icon status={status} />
             <span
               className={cn(
@@ -122,5 +133,14 @@ export function AnalysisStepper({ stage, hasError }: { stage: AnalysisStage | nu
         )
       })}
     </ol>
+    {allDone && (
+      <div className="animate-rise mt-4 flex items-center gap-2 rounded-lg border border-[var(--success-border)] bg-[var(--success-bg)] px-3 py-2 text-sm font-medium text-[var(--success)]">
+        <span className="animate-pop flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--success)] text-white text-[11px]">
+          ✓
+        </span>
+        All set — your insights are ready.
+      </div>
+    )}
+    </>
   )
 }

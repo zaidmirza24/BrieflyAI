@@ -41,11 +41,11 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--muted)] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-md)]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[image:var(--brand-gradient)] text-white shadow-[var(--shadow-md)]">
             <Sparkles className="h-5 w-5" />
           </div>
           <h1 className="text-lg font-semibold tracking-tight">Mentor-Mentee Insights</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Sign in to continue</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Welcome back — sign in to pick up where you left off.</p>
         </div>
 
         <Card className="shadow-[var(--shadow-lg)]">

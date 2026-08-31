@@ -27,9 +27,9 @@ function StatCard({
   value: number
 }) {
   return (
-    <Card>
+    <Card interactive>
       <CardContent className="flex items-center gap-4 pt-6">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[image:var(--accent-gradient)] text-white shadow-[var(--shadow-sm)]">
           <Icon className="h-5 w-5" />
         </div>
         <div>
@@ -66,9 +66,9 @@ export default function Dashboard() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Mentor-Mentee Insights</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Here's where things stand</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Track mentor-mentee sessions and progress over time.
+            Your mentor-mentee sessions and progress, all in one place.
           </p>
         </div>
         <Link to="/new" className={buttonVariants({ variant: "accent" })}>
@@ -163,8 +163,8 @@ export default function Dashboard() {
             {summary.recent_analyses.length === 0 ? (
               <EmptyState
                 icon={Sparkles}
-                title="No analyses yet"
-                description="Upload your first mentor-mentee recording to see insights here."
+                title="You're ready to get started"
+                description="Upload your first mentor-mentee recording and insights will show up right here."
                 action={
                   <Link to="/new" className={buttonVariants({ variant: "accent", size: "sm" })}>
                     New Analysis

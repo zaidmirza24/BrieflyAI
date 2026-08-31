@@ -31,7 +31,11 @@ function TranscriptLine({ line }: { line: string }) {
 function Transcript({ transcript }: { transcript: string | null }) {
   const lines = useMemo(() => transcript?.split("\n") ?? [], [transcript])
   if (!transcript) {
-    return <p className="p-6 text-sm text-[var(--muted-foreground)]">No transcript available.</p>
+    return (
+      <p className="p-6 text-sm text-[var(--muted-foreground)]">
+        The transcript will appear here once processing finishes.
+      </p>
+    )
   }
   return (
     <Card>
@@ -71,7 +75,7 @@ export function AnalysisResult({ session }: { session: SessionDetail }) {
 
       {session.status === "FAILED" && session.error && (
         <div className="rounded-[var(--radius)] border border-[var(--destructive-border)] bg-[var(--destructive-bg)] p-4 text-sm text-[var(--destructive)]">
-          Analysis failed: {session.error}
+          We couldn't finish this analysis. You can start a new one from the same recording. ({session.error})
         </div>
       )}
 
@@ -84,7 +88,9 @@ export function AnalysisResult({ session }: { session: SessionDetail }) {
           {session.insights ? (
             <ResultsPanel insights={session.insights as never} />
           ) : (
-            <p className="p-6 text-sm text-[var(--muted-foreground)]">No insights available yet.</p>
+            <p className="p-6 text-sm text-[var(--muted-foreground)]">
+              Insights will appear here as soon as this recording finishes processing.
+            </p>
           )}
         </TabsContent>
         <TabsContent value="transcript">

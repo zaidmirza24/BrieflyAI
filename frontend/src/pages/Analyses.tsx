@@ -195,8 +195,12 @@ export default function Analyses() {
         {data && data.items.length === 0 && (
           <EmptyState
             icon={FileAudio}
-            title={filtersActive ? "No analyses match" : "No analyses yet"}
-            description={filtersActive ? "Try a different filter." : "Analyse a recording to see it here."}
+            title={filtersActive ? "No matches for these filters" : "You're ready to get started"}
+            description={
+              filtersActive
+                ? "Try widening your search or clearing a filter."
+                : "Analyse a recording and it'll show up here."
+            }
           />
         )}
 

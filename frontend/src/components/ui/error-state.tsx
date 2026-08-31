@@ -2,8 +2,8 @@ import { AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function ErrorState({
-  title = "Couldn't load this",
-  description,
+  title = "That didn't load — let's try again",
+  description = "Something got in the way. Your data is safe.",
   onRetry,
 }: {
   title?: string

@@ -294,7 +294,7 @@ export default function NewAnalysis() {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle as="h2" className="text-base">
-              {phase === "analyzing" ? "Analyzing your recording…" : "Analysis failed"}
+              {phase === "analyzing" ? "Working on your recording…" : "That didn't finish — let's retry"}
             </CardTitle>
           </CardHeader>
           <CardContent>
