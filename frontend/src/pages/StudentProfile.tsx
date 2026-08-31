@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
-import { StatusBadge, MenteeStatusBadge, Badge } from "@/components/ui/badge"
+import { StatusBadge, MenteeStatusBadge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ErrorState } from "@/components/ui/error-state"
 import { useToast } from "@/components/ui/toast"
@@ -39,7 +39,7 @@ export default function StudentProfile() {
   useEffect(load, [id])
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
       <Link
         to="/students"
         className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -71,7 +71,6 @@ export default function StudentProfile() {
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-semibold">{student.name}</h1>
                   <MenteeStatusBadge status={student.status} />
-                  {student.overdue && <Badge variant="warning">Overdue</Badge>}
                 </div>
                 <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
                   <User2 className="h-3.5 w-3.5" />

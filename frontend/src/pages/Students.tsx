@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge, MenteeStatusBadge } from "@/components/ui/badge"
+import { MenteeStatusBadge } from "@/components/ui/badge"
 import { AddMenteeWizard } from "@/components/onboarding/AddMenteeWizard"
 import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
 import { LOCATIONS } from "@/lib/locations"
@@ -70,7 +70,7 @@ export default function Students() {
   }, [query, location, mentorId, status, admin])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{admin ? "Mentees" : "My Mentees"}</h1>
@@ -172,7 +172,38 @@ export default function Students() {
         )}
 
         {!error && students && students.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile: stacked cards. Desktop (sm+): full table. */}
+            <ul className="divide-y divide-[var(--border)] sm:hidden">
+              {students.map((s) => (
+                <li key={s.id} className="flex flex-col gap-2 px-4 py-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link to={`/students/${s.id}`} className="font-medium text-[var(--foreground)] hover:underline">
+                      {s.name}
+                      {s.std && <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">{s.std}</span>}
+                    </Link>
+                    <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      <MenteeStatusBadge status={s.status} />
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)]">
+                    <span>
+                      {s.mentor_name ?? <span className="text-[var(--destructive)]">Unassigned</span>}
+                    </span>
+                    {admin && <span>{s.area ?? s.mentor_area ?? "—"}</span>}
+                    <span>{s.analysis_count} session{s.analysis_count === 1 ? "" : "s"}</span>
+                    <span>Last: {formatDate(s.last_analysis_at)}</span>
+                  </div>
+                  {admin && (
+                    <Button variant="outline" size="sm" className="self-start" onClick={() => setAssigning(s)}>
+                      {s.primary_mentor_id ? "Reassign" : "Assign"}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -203,7 +234,6 @@ export default function Students() {
                     <td className="px-6 py-3.5">
                       <span className="flex items-center gap-1.5">
                         <MenteeStatusBadge status={s.status} />
-                        {s.overdue && <Badge variant="warning">Overdue</Badge>}
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.analysis_count}</td>
@@ -219,7 +249,8 @@ export default function Students() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </Card>
 

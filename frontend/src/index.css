@@ -147,6 +147,20 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Safety net against accidental horizontal page scroll on small screens.
+   `clip` (not `hidden`) keeps position: sticky working and creates no
+   scroll container. Component-level overflow is fixed at the source. */
+html,
+body {
+  overflow-x: clip;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   background:

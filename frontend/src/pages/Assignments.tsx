@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { AlertTriangle, PauseCircle, UserRoundPlus, Users } from "lucide-react"
+import { PauseCircle, UserRoundPlus, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MenteeStatusBadge, Badge } from "@/components/ui/badge"
+import { MenteeStatusBadge } from "@/components/ui/badge"
 import { cn, formatDate } from "@/lib/utils"
 import { usePageTitle } from "@/lib/usePageTitle"
 import { useToast } from "@/components/ui/toast"
@@ -66,7 +66,7 @@ export default function Assignments() {
   useEffect(loadAttention, [])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Assignments</h1>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -74,9 +74,8 @@ export default function Assignments() {
         </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatCard icon={UserRoundPlus} label="Unassigned" value={attention?.unassigned ?? null} tone="danger" />
-        <StatCard icon={AlertTriangle} label="Overdue for a session" value={attention?.overdue ?? null} tone="warning" />
         <StatCard icon={PauseCircle} label="Paused" value={attention?.paused ?? null} tone="default" />
       </div>
 
@@ -221,7 +220,47 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
         )}
 
         {queue && queue.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile: tappable cards with a large checkbox. Desktop: table. */}
+            <ul className="divide-y divide-[var(--border)] sm:hidden">
+              <li className="px-4 py-2.5">
+                <label className="flex items-center gap-3 text-xs font-medium text-[var(--muted-foreground)]">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    className="h-5 w-5 accent-[var(--accent)]"
+                    checked={allSelected}
+                    onChange={(e) => setSelected(e.target.checked ? new Set(queue.map((s) => s.id)) : new Set())}
+                  />
+                  Select all
+                </label>
+              </li>
+              {queue.map((s) => (
+                <li key={s.id}>
+                  <label className="flex items-start gap-3 px-4 py-3.5">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${s.name}`}
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
+                      checked={selected.has(s.id)}
+                      onChange={() => toggle(s.id)}
+                    />
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <Link to={`/students/${s.id}`} className="font-medium hover:underline">
+                        {s.name}
+                      </Link>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--muted-foreground)]">
+                        <MenteeStatusBadge status={s.status} />
+                        {s.std && <span>{s.std}</span>}
+                        {s.area && <span>{s.area}</span>}
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -229,7 +268,7 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
                     <input
                       type="checkbox"
                       aria-label="Select all"
-                      className="h-4 w-4 accent-[var(--accent)]"
+                      className="h-5 w-5 accent-[var(--accent)]"
                       checked={allSelected}
                       onChange={(e) => setSelected(e.target.checked ? new Set(queue.map((s) => s.id)) : new Set())}
                     />
@@ -247,7 +286,7 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
                       <input
                         type="checkbox"
                         aria-label={`Select ${s.name}`}
-                        className="h-4 w-4 accent-[var(--accent)]"
+                        className="h-5 w-5 accent-[var(--accent)]"
                         checked={selected.has(s.id)}
                         onChange={() => toggle(s.id)}
                       />
@@ -266,7 +305,8 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </Card>
 
@@ -374,7 +414,36 @@ function ByMentor({ onChanged }: { onChanged: () => void }) {
             <EmptyState icon={Users} title="No mentees" description="This mentor has no mentees assigned." />
           )}
           {roster && roster.length > 0 && (
-            <div className="overflow-x-auto">
+            <>
+              {/* Mobile: stacked cards. Desktop (sm+): full table. */}
+              <ul className="divide-y divide-[var(--border)] sm:hidden">
+                {roster.map((s) => (
+                  <li key={s.id} className="flex flex-col gap-2 px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <Link to={`/students/${s.id}`} className="font-medium hover:underline">
+                        {s.name}
+                        {s.std && (
+                          <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">{s.std}</span>
+                        )}
+                      </Link>
+                      <MenteeStatusBadge status={s.status} />
+                    </div>
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      Last: {formatDate(s.last_analysis_at)}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setAssigning({ student: s, mode: "reassign" })}>
+                        Reassign
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setAssigning({ student: s, mode: "unassign" })}>
+                        Unassign
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -397,7 +466,6 @@ function ByMentor({ onChanged }: { onChanged: () => void }) {
                       <td className="px-6 py-3.5">
                         <span className="flex items-center gap-1.5">
                           <MenteeStatusBadge status={s.status} />
-                          {s.overdue && <Badge variant="warning">Overdue</Badge>}
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
@@ -415,7 +483,8 @@ function ByMentor({ onChanged }: { onChanged: () => void }) {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </Card>
       )}

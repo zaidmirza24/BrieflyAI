@@ -362,7 +362,6 @@ export interface StudentSummary {
   school: string | null
   area: string | null
   status: MenteeStatus
-  cadence_days: number | null
   notes: string | null
   primary_mentor_id: string | null
   mentor_name: string | null
@@ -370,7 +369,6 @@ export interface StudentSummary {
   analysis_count: number
   last_analysis_at: string | null
   created_at: string | null
-  overdue: boolean
 }
 
 export interface Assignment {
@@ -396,13 +394,11 @@ export interface MenteeProfileInput {
   std?: string | null
   school?: string | null
   area?: string | null
-  cadence_days?: number | null
   notes?: string | null
 }
 
 export interface AttentionSummary {
   unassigned: number
-  overdue: number
   paused: number
 }
 
@@ -417,7 +413,6 @@ export async function listStudents(
     area?: string
     status?: MenteeStatus
     unassigned?: boolean
-    overdue?: boolean
   } = {},
 ): Promise<StudentSummary[]> {
   const params = new URLSearchParams()
@@ -426,7 +421,6 @@ export async function listStudents(
   if (opts.area) params.set("area", opts.area)
   if (opts.status) params.set("status", opts.status)
   if (opts.unassigned) params.set("unassigned", "true")
-  if (opts.overdue) params.set("overdue", "true")
   const qs = params.toString() ? `?${params.toString()}` : ""
   return api.get<StudentSummary[]>(`/api/students${qs}`)
 }

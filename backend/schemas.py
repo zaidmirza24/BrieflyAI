@@ -88,7 +88,6 @@ class StudentOut(BaseModel):
     school: str | None = None
     area: str | None = None
     status: MenteeStatus = "active"
-    cadence_days: int | None = None
     notes: str | None = None
     primary_mentor_id: str | None = None
     mentor_name: str | None = None
@@ -96,9 +95,6 @@ class StudentOut(BaseModel):
     analysis_count: int
     last_analysis_at: datetime.datetime | None
     created_at: datetime.datetime | None = None
-    # True when status is active/paused and the last session is older than the
-    # cadence window (or there has never been a session).
-    overdue: bool = False
 
 
 class StudentDetailOut(StudentOut):
@@ -118,7 +114,6 @@ class _MenteeProfile(BaseModel):
     std: str | None = Field(None, max_length=20)
     school: str | None = Field(None, max_length=160)
     area: str | None = Field(None, max_length=80)
-    cadence_days: int | None = Field(None, ge=1, le=365)
     notes: str | None = Field(None, max_length=2000)
 
     @field_validator("contact", "std", "school", "area", "notes", mode="before")
@@ -163,7 +158,6 @@ class BulkAssignResult(BaseModel):
 
 class AttentionSummary(BaseModel):
     unassigned: int
-    overdue: int
     paused: int
 
 

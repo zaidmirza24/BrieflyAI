@@ -92,7 +92,7 @@ export default function Analyses() {
   const filtersActive = !!(query || status || dateFrom || dateTo || location || mentorId)
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Analyses</h1>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -205,7 +205,29 @@ export default function Analyses() {
         )}
 
         {data && data.items.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile: stacked cards. Desktop (sm+): full table. */}
+            <ul className="divide-y divide-[var(--border)] sm:hidden">
+              {data.items.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    to={`/analyses/${s.id}`}
+                    className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-[var(--muted)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-[var(--foreground)]">{s.student_name}</span>
+                      <StatusBadge status={s.status} />
+                    </div>
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      {s.mentor_name} · {formatDate(s.created_at)}
+                    </span>
+                    <span className="truncate text-xs text-[var(--muted-foreground)]">{s.audio_filename}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -244,7 +266,8 @@ export default function Analyses() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </Card>
 

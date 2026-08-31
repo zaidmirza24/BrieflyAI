@@ -44,7 +44,7 @@ export default function Mentors() {
   const withoutLogin = useMemo(() => mentors?.filter((m) => !m.account_username).length ?? 0, [mentors])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Mentors</h1>

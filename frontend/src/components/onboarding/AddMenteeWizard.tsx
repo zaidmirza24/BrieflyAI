@@ -100,7 +100,7 @@ export function AddMenteeWizard({
           <Field label="Name">
             <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Gender (optional)">
               <Select value={gender} onChange={(e) => setGender(e.target.value as Gender | "")}>
                 <option value="">—</option>
@@ -116,7 +116,7 @@ export function AddMenteeWizard({
           <Field label="School (optional)">
             <Input value={school} onChange={(e) => setSchool(e.target.value)} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Contact (optional)">
               <Input value={contact} onChange={(e) => setContact(e.target.value)} />
             </Field>

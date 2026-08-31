@@ -59,11 +59,11 @@ export default function Dashboard() {
   useEffect(load, [])
 
   const attentionTotal = attention
-    ? attention.unassigned + attention.overdue + attention.paused
+    ? attention.unassigned + attention.paused
     : 0
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Here's where things stand</h1>
@@ -137,9 +137,7 @@ export default function Dashboard() {
                     {admin && attention.unassigned > 0 && (
                       <span className="font-medium">{attention.unassigned} unassigned</span>
                     )}
-                    {admin && attention.unassigned > 0 && (attention.overdue > 0 || attention.paused > 0) && " · "}
-                    {attention.overdue > 0 && <span>{attention.overdue} overdue for a session</span>}
-                    {attention.overdue > 0 && attention.paused > 0 && " · "}
+                    {admin && attention.unassigned > 0 && attention.paused > 0 && " · "}
                     {attention.paused > 0 && <span>{attention.paused} paused</span>}
                   </p>
                 </div>

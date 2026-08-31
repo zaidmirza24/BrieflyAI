@@ -24,7 +24,6 @@ from pymongo.database import Database
 from backend.auth import Principal, get_principal, require_admin
 from backend.constants import (
     MENTEE_ACTIVE_STATUSES,
-    MENTEE_CADENCE_DAYS_DEFAULT,
     MENTEE_STATUS_DEFAULT,
 )
 from backend.db import get_db
@@ -43,7 +42,7 @@ from backend.schemas import (
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 
-_PROFILE_FIELDS = ("gender", "contact", "std", "school", "area", "cadence_days", "notes")
+_PROFILE_FIELDS = ("gender", "contact", "std", "school", "area", "notes")
 
 
 def _now() -> datetime.datetime:
@@ -60,17 +59,6 @@ def _oid(value: str, what: str = "id") -> ObjectId:
 def _mentor_ids_in_area(db: Database, area: str) -> list[ObjectId]:
     cursor = db.mentors.find({"area": {"$regex": f"^{area}$", "$options": "i"}}, {"_id": 1})
     return [m["_id"] for m in cursor]
-
-
-def _is_overdue(student: dict, last_session_at: datetime.datetime | None) -> bool:
-    if student.get("status", MENTEE_STATUS_DEFAULT) not in MENTEE_ACTIVE_STATUSES:
-        return False
-    if last_session_at is None:
-        return True
-    cadence = student.get("cadence_days") or MENTEE_CADENCE_DAYS_DEFAULT
-    if last_session_at.tzinfo is None:
-        last_session_at = last_session_at.replace(tzinfo=datetime.timezone.utc)
-    return last_session_at < _now() - datetime.timedelta(days=cadence)
 
 
 def _student_out(db: Database, student: dict) -> StudentOut:
@@ -90,7 +78,6 @@ def _student_out(db: Database, student: dict) -> StudentOut:
         school=student.get("school"),
         area=student.get("area") or (mentor.get("area") if mentor else None),
         status=student.get("status", MENTEE_STATUS_DEFAULT),
-        cadence_days=student.get("cadence_days"),
         notes=student.get("notes"),
         primary_mentor_id=str(student["primary_mentor_id"]) if student.get("primary_mentor_id") else None,
         mentor_name=mentor["name"] if mentor else None,
@@ -98,7 +85,6 @@ def _student_out(db: Database, student: dict) -> StudentOut:
         analysis_count=len(sessions),
         last_analysis_at=last_at,
         created_at=student.get("created_at"),
-        overdue=_is_overdue(student, last_at),
     )
 
 
@@ -156,7 +142,6 @@ def _students_out_batch(db: Database, students: list[dict]) -> list[StudentOut]:
                 school=s.get("school"),
                 area=s.get("area") or (mentor.get("area") if mentor else None),
                 status=s.get("status", MENTEE_STATUS_DEFAULT),
-                cadence_days=s.get("cadence_days"),
                 notes=s.get("notes"),
                 primary_mentor_id=str(s["primary_mentor_id"]) if s.get("primary_mentor_id") else None,
                 mentor_name=mentor["name"] if mentor else None,
@@ -164,7 +149,6 @@ def _students_out_batch(db: Database, students: list[dict]) -> list[StudentOut]:
                 analysis_count=st["count"] if st else 0,
                 last_analysis_at=last_at,
                 created_at=s.get("created_at"),
-                overdue=_is_overdue(s, last_at),
             )
         )
     return out
@@ -274,7 +258,6 @@ def list_students(
     area: str | None = Query(None),
     status: str | None = Query(None, description="active | paused | graduated | dropped"),
     unassigned: bool = Query(False, description="Only mentees with no mentor."),
-    overdue: bool = Query(False, description="Only active/paused mentees past their cadence window."),
     db: Database = Depends(get_db),
     principal: Principal = Depends(get_principal),
 ):
@@ -295,10 +278,7 @@ def list_students(
         query["primary_mentor_id"] = principal.mentor_oid()
 
     students = list(db.students.find(query).sort("name", 1))
-    out = _students_out_batch(db, students)
-    if overdue:
-        out = [s for s in out if s.overdue]
-    return out
+    return _students_out_batch(db, students)
 
 
 @router.get("/attention", response_model=AttentionSummary)
@@ -313,20 +293,7 @@ def attention_summary(db: Database = Depends(get_db), principal: Principal = Dep
     )
     paused = db.students.count_documents({**base, "status": "paused"})
 
-    active = list(db.students.find({**base, "status": {"$in": list(MENTEE_ACTIVE_STATUSES)}}))
-    last_at: dict = {
-        row["_id"]: row["last_at"]
-        for row in db.sessions.aggregate(
-            [
-                {"$match": {"student_id": {"$in": [s["_id"] for s in active]}}},
-                {"$sort": {"created_at": -1}},
-                {"$group": {"_id": "$student_id", "last_at": {"$first": "$created_at"}}},
-            ]
-        )
-    }
-    overdue = sum(1 for s in active if _is_overdue(s, last_at.get(s["_id"])))
-
-    return AttentionSummary(unassigned=unassigned, overdue=overdue, paused=paused)
+    return AttentionSummary(unassigned=unassigned, paused=paused)
 
 
 # --------------------------------------------------------------------------- #

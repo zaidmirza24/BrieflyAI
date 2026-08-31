@@ -11,10 +11,6 @@ MENTEE_STATUS_DEFAULT = "active"
 # Statuses that count as "on the roster" for capacity / attention purposes.
 MENTEE_ACTIVE_STATUSES = ("active", "paused")
 
-# Default expected number of days between mentoring sessions. A mentee whose
-# most recent session is older than its cadence window is "overdue".
-MENTEE_CADENCE_DAYS_DEFAULT = 14
-
 GENDERS = ("M", "F", "O")
 
 # -- Pagination -------------------------------------------------------------

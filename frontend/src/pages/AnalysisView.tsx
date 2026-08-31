@@ -58,7 +58,7 @@ export default function AnalysisView() {
   const inProgress = session && !TERMINAL.includes(session.status)
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
       <button
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"

@@ -46,7 +46,7 @@ export default function MentorDetail() {
   usePageTitle(mentor?.name ?? "Mentor")
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:py-10">
       <Link
         to="/mentors"
         className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -108,7 +108,7 @@ export default function MentorDetail() {
                 <Progress value={mentor.capacity ? mentor.mentee_count / mentor.capacity : 0} />
               </div>
 
-              <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
+              <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4">
                 <span className="text-sm text-[var(--muted-foreground)]">Login</span>
                 {mentor.account_username ? (
                   <>
@@ -157,7 +157,37 @@ export default function MentorDetail() {
               <EmptyState icon={Users} title="No mentees assigned" description="Assign mentees from the Assignments page." />
             )}
             {roster && roster.length > 0 && (
-              <div className="overflow-x-auto">
+              <>
+                {/* Mobile: stacked cards. Desktop (sm+): full table. */}
+                <ul className="divide-y divide-[var(--border)] sm:hidden">
+                  {roster.map((s) => (
+                    <li key={s.id} className="flex flex-col gap-2 px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <Link to={`/students/${s.id}`} className="font-medium hover:underline">
+                          {s.name}
+                          {s.std && (
+                            <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">{s.std}</span>
+                          )}
+                        </Link>
+                        <MenteeStatusBadge status={s.status} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)]">
+                        {s.school && <span className="truncate">{s.school}</span>}
+                        <span>Last: {formatDate(s.last_analysis_at)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setAssigning({ student: s, mode: "reassign" })}>
+                          Reassign
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setAssigning({ student: s, mode: "unassign" })}>
+                          Unassign
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -184,7 +214,6 @@ export default function MentorDetail() {
                         <td className="px-6 py-3.5">
                           <span className="flex items-center gap-1.5">
                             <MenteeStatusBadge status={s.status} />
-                            {s.overdue && <Badge variant="warning">Overdue</Badge>}
                           </span>
                         </td>
                         <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
@@ -210,7 +239,8 @@ export default function MentorDetail() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </Card>
         </>

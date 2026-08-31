@@ -159,7 +159,7 @@ export default function NewAnalysis() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:py-10">
       <div className="flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-bg)] text-[var(--accent-strong)]">
           <Sparkles className="h-4.5 w-4.5" />
