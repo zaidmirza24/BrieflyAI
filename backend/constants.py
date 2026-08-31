@@ -16,3 +16,7 @@ MENTEE_ACTIVE_STATUSES = ("active", "paused")
 MENTEE_CADENCE_DAYS_DEFAULT = 14
 
 GENDERS = ("M", "F", "O")
+
+# -- Pagination -------------------------------------------------------------
+SESSIONS_PAGE_SIZE_DEFAULT = 20
+PAGE_SIZE_MAX = 100

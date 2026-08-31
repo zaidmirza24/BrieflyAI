@@ -274,11 +274,48 @@ export async function streamAnalysis(sessionId: string, onEvent: (event: Analysi
 
 export interface SessionSummary {
   id: string
+  student_id: string
   student_name: string
+  mentor_id: string
   mentor_name: string
   audio_filename: string
   status: SessionStatus
   created_at: string
+}
+
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
+export async function listSessions(
+  opts: {
+    page?: number
+    pageSize?: number
+    q?: string
+    status?: SessionStatus
+    dateFrom?: string
+    dateTo?: string
+    mentorId?: string
+    studentId?: string
+    area?: string
+  } = {},
+): Promise<Page<SessionSummary>> {
+  const params = new URLSearchParams()
+  if (opts.page) params.set("page", String(opts.page))
+  if (opts.pageSize) params.set("page_size", String(opts.pageSize))
+  if (opts.q) params.set("q", opts.q)
+  if (opts.status) params.set("status", opts.status)
+  if (opts.dateFrom) params.set("date_from", opts.dateFrom)
+  if (opts.dateTo) params.set("date_to", opts.dateTo)
+  if (opts.mentorId) params.set("mentor_id", opts.mentorId)
+  if (opts.studentId) params.set("student_id", opts.studentId)
+  if (opts.area) params.set("area", opts.area)
+  const qs = params.toString() ? `?${params.toString()}` : ""
+  return api.get<Page<SessionSummary>>(`/api/sessions${qs}`)
 }
 
 export interface DashboardSummary {
@@ -306,6 +343,7 @@ export interface StudentSummary {
   mentor_area: string | null
   analysis_count: number
   last_analysis_at: string | null
+  created_at: string | null
   overdue: boolean
 }
 
@@ -432,6 +470,10 @@ export interface MentorAdmin extends MentorSummary {
   capacity: number | null
   mentee_count: number
   account_username: string | null
+}
+
+export async function getMentor(id: string): Promise<MentorAdmin> {
+  return api.get<MentorAdmin>(`/api/mentors/${id}`)
 }
 
 export async function listMentors(query?: string, area?: string): Promise<MentorAdmin[]> {

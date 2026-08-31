@@ -149,8 +149,8 @@ export default function Dashboard() {
           <Card className="mt-6">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
               <h2 className="text-sm font-semibold">Recent Analyses</h2>
-              <Link to="/students" className="text-sm text-[var(--accent)] hover:underline">
-                View all students
+              <Link to="/analyses" className="text-sm text-[var(--accent)] hover:underline">
+                View all analyses
               </Link>
             </div>
             {summary.recent_analyses.length === 0 ? (

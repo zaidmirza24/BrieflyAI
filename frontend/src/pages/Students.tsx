@@ -1,27 +1,18 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Plus, Search, Users, X } from "lucide-react"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Plus, Search, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge, MenteeStatusBadge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { AddMenteeWizard } from "@/components/onboarding/AddMenteeWizard"
+import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
 import { LOCATIONS } from "@/lib/locations"
 import { isAdmin } from "@/lib/auth"
-import {
-  ApiError,
-  createStudent,
-  listMentors,
-  listStudents,
-  type Gender,
-  type MenteeStatus,
-  type MentorSummary,
-  type StudentSummary,
-} from "@/lib/api"
+import { listMentors, listStudents, type MenteeStatus, type MentorSummary, type StudentSummary } from "@/lib/api"
 
 function formatDate(iso: string | null) {
   if (!iso) return "—"
@@ -44,6 +35,7 @@ export default function Students() {
   const [status, setStatus] = useState<MenteeStatus | "">("")
   const [mentors, setMentors] = useState<MentorSummary[]>([])
   const [showAdd, setShowAdd] = useState(false)
+  const [assigning, setAssigning] = useState<StudentSummary | null>(null)
 
   useEffect(() => {
     if (!admin) return
@@ -182,6 +174,7 @@ export default function Students() {
                   <th className="px-6 py-3 font-medium">Status</th>
                   <th className="px-6 py-3 font-medium">Sessions</th>
                   <th className="px-6 py-3 font-medium">Last</th>
+                  {admin && <th className="px-6 py-3 font-medium" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -207,6 +200,13 @@ export default function Students() {
                     </td>
                     <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{s.analysis_count}</td>
                     <td className="px-6 py-3.5 text-[var(--muted-foreground)]">{formatDate(s.last_analysis_at)}</td>
+                    {admin && (
+                      <td className="px-6 py-3.5 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setAssigning(s)}>
+                          {s.primary_mentor_id ? "Reassign" : "Assign"}
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -216,9 +216,8 @@ export default function Students() {
       </Card>
 
       {showAdd && (
-        <AddMenteeDialog
+        <AddMenteeWizard
           admin={admin}
-          mentors={mentors}
           onClose={() => setShowAdd(false)}
           onCreated={() => {
             setShowAdd(false)
@@ -226,141 +225,22 @@ export default function Students() {
           }}
         />
       )}
-    </div>
-  )
-}
 
-function AddMenteeDialog({
-  admin,
-  mentors,
-  onClose,
-  onCreated,
-}: {
-  admin: boolean
-  mentors: MentorSummary[]
-  onClose: () => void
-  onCreated: () => void
-}) {
-  const [name, setName] = useState("")
-  const [gender, setGender] = useState<Gender | "">("")
-  const [std, setStd] = useState("")
-  const [school, setSchool] = useState("")
-  const [contact, setContact] = useState("")
-  const [area, setArea] = useState("")
-  const [mentorId, setMentorId] = useState("")
-  const [allMentors, setAllMentors] = useState<MentorSummary[]>(mentors)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (admin && allMentors.length === 0) {
-      listMentors().then(setAllMentors).catch(() => {})
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admin])
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      await createStudent({
-        name: name.trim(),
-        gender: gender || null,
-        std: std.trim() || null,
-        school: school.trim() || null,
-        contact: contact.trim() || null,
-        area: area.trim() || null,
-        primary_mentor_id: admin && mentorId ? mentorId : undefined,
-        assignment_reason: admin && mentorId ? "Assigned on intake" : undefined,
-      })
-      onCreated()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add the mentee.")
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-lg)]">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Add mentee</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="s-name">Name</Label>
-            <Input id="s-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-gender">Gender</Label>
-              <Select id="s-gender" value={gender} onChange={(e) => setGender(e.target.value as Gender | "")}>
-                <option value="">—</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-                <option value="O">Other</option>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-std">Grade / Std</Label>
-              <Input id="s-std" value={std} onChange={(e) => setStd(e.target.value)} placeholder="9th" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="s-school">School (optional)</Label>
-            <Input id="s-school" value={school} onChange={(e) => setSchool(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-contact">Contact (optional)</Label>
-              <Input id="s-contact" value={contact} onChange={(e) => setContact(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-area">Area (optional)</Label>
-              <Select id="s-area" value={area} onChange={(e) => setArea(e.target.value)}>
-                <option value="">—</option>
-                {LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
-          {admin && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="s-mentor">Assign mentor (optional)</Label>
-              <Select id="s-mentor" value={mentorId} onChange={(e) => setMentorId(e.target.value)}>
-                <option value="">Leave unassigned</option>
-                {allMentors.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                    {m.area ? ` · ${m.area}` : ""}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
-          {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
-          <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              Cancel
-            </button>
-            <Button type="submit" variant="accent" size="sm" disabled={busy || !name.trim()}>
-              {busy ? "Adding…" : "Add mentee"}
-            </Button>
-          </div>
-        </form>
-      </div>
+      {assigning && (
+        <AssignMenteeDialog
+          student={{
+            id: assigning.id,
+            name: assigning.name,
+            primary_mentor_id: assigning.primary_mentor_id,
+            mentor_name: assigning.mentor_name,
+          }}
+          onClose={() => setAssigning(null)}
+          onDone={() => {
+            setAssigning(null)
+            reload()
+          }}
+        />
+      )}
     </div>
   )
 }

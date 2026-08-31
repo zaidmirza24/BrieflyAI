@@ -34,7 +34,9 @@ def get_summary(db: Database = Depends(get_db), principal: Principal = Depends(g
         recent_out.append(
             SessionSummaryOut(
                 id=str(doc["_id"]),
+                student_id=str(doc["student_id"]),
                 student_name=student["name"] if student else "Unknown",
+                mentor_id=str(doc["mentor_id"]),
                 mentor_name=mentor["name"] if mentor else "Unknown",
                 audio_filename=doc["audio_filename"],
                 status=doc["status"],

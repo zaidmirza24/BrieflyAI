@@ -8,8 +8,10 @@ mentees, and the session's mentor_id is forced to their own record.
 """
 
 import asyncio
+import datetime
 import json
 import queue
+import re
 import threading
 
 from bson import ObjectId
@@ -20,8 +22,10 @@ from pymongo.database import Database
 
 from config import AppConfig
 from backend.auth import Principal, get_principal
+from backend.constants import PAGE_SIZE_MAX, SESSIONS_PAGE_SIZE_DEFAULT
 from backend.db import get_db
-from backend.schemas import SessionCreate, SessionCreated, SessionOut, SessionSummaryOut
+from backend.schemas import Page, SessionCreate, SessionCreated, SessionOut, SessionSummaryOut
+from backend.session_status import SessionStatus
 from backend.services.analysis_service import AnalysisError, create_session, get_session, run_analysis_for_session
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -131,8 +135,23 @@ def get_session_route(
     return SessionOut(**session)
 
 
-@router.get("", response_model=list[SessionSummaryOut])
+def _parse_date(value: str | None, what: str) -> datetime.date | None:
+    if not value:
+        return None
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid {what} — expected YYYY-MM-DD.")
+
+
+@router.get("", response_model=Page[SessionSummaryOut])
 def list_sessions(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(SESSIONS_PAGE_SIZE_DEFAULT, ge=1, le=PAGE_SIZE_MAX),
+    q: str | None = Query(None, description="Match on audio filename or mentee name."),
+    status: SessionStatus | None = Query(None),
+    date_from: str | None = Query(None, description="ISO date (YYYY-MM-DD), inclusive."),
+    date_to: str | None = Query(None, description="ISO date (YYYY-MM-DD), inclusive."),
     mentor_id: str | None = Query(None),
     student_id: str | None = Query(None),
     area: str | None = Query(None),
@@ -140,6 +159,7 @@ def list_sessions(
     principal: Principal = Depends(get_principal),
 ):
     query: dict = {}
+
     if principal.is_admin:
         if mentor_id:
             try:
@@ -147,7 +167,12 @@ def list_sessions(
             except InvalidId:
                 raise HTTPException(status_code=400, detail="Invalid mentor id.")
         elif area:
-            ids = [m["_id"] for m in db.mentors.find({"area": {"$regex": f"^{area}$", "$options": "i"}}, {"_id": 1})]
+            ids = [
+                m["_id"]
+                for m in db.mentors.find(
+                    {"area": {"$regex": f"^{re.escape(area)}$", "$options": "i"}}, {"_id": 1}
+                )
+            ]
             query["mentor_id"] = {"$in": ids}
         if student_id:
             try:
@@ -155,21 +180,56 @@ def list_sessions(
             except InvalidId:
                 raise HTTPException(status_code=400, detail="Invalid mentee id.")
     else:
-        query["mentor_id"] = principal.mentor_oid()
+        mentor_oid = principal.mentor_oid()
+        if mentor_oid is None:
+            raise HTTPException(status_code=403, detail="Your account is not linked to a mentor record.")
+        query["mentor_id"] = mentor_oid
 
-    docs = db.sessions.find(query).sort("created_at", -1).limit(50)
-    out = []
-    for doc in docs:
-        student = db.students.find_one({"_id": doc["student_id"]})
-        mentor = db.mentors.find_one({"_id": doc["mentor_id"]})
-        out.append(
-            SessionSummaryOut(
-                id=str(doc["_id"]),
-                student_name=student["name"] if student else "Unknown",
-                mentor_name=mentor["name"] if mentor else "Unknown",
-                audio_filename=doc["audio_filename"],
-                status=doc["status"],
-                created_at=doc["created_at"],
+    if status is not None:
+        query["status"] = status.value
+
+    d_from = _parse_date(date_from, "date_from")
+    d_to = _parse_date(date_to, "date_to")
+    if d_from or d_to:
+        created: dict = {}
+        if d_from:
+            created["$gte"] = datetime.datetime.combine(d_from, datetime.time.min, datetime.timezone.utc)
+        if d_to:
+            created["$lt"] = datetime.datetime.combine(
+                d_to + datetime.timedelta(days=1), datetime.time.min, datetime.timezone.utc
             )
+        query["created_at"] = created
+
+    if q and q.strip():
+        rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        student_ids = [s["_id"] for s in db.students.find({"name": rx}, {"_id": 1})]
+        query["$or"] = [{"audio_filename": rx}, {"student_id": {"$in": student_ids}}]
+
+    total = db.sessions.count_documents(query)
+    pages = max(1, (total + page_size - 1) // page_size)
+    docs = list(
+        db.sessions.find(query)
+        .sort("created_at", -1)
+        .skip((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    student_ids = {d["student_id"] for d in docs}
+    mentor_ids = {d["mentor_id"] for d in docs}
+    students = {s["_id"]: s["name"] for s in db.students.find({"_id": {"$in": list(student_ids)}}, {"name": 1})}
+    mentors = {m["_id"]: m["name"] for m in db.mentors.find({"_id": {"$in": list(mentor_ids)}}, {"name": 1})}
+
+    items = [
+        SessionSummaryOut(
+            id=str(doc["_id"]),
+            student_id=str(doc["student_id"]),
+            student_name=students.get(doc["student_id"], "Unknown"),
+            mentor_id=str(doc["mentor_id"]),
+            mentor_name=mentors.get(doc["mentor_id"], "Unknown"),
+            audio_filename=doc["audio_filename"],
+            status=doc["status"],
+            created_at=doc["created_at"],
         )
-    return out
+        for doc in docs
+    ]
+    return Page(items=items, total=total, page=page, page_size=page_size, pages=pages)

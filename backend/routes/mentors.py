@@ -111,6 +111,11 @@ def list_mentors(
     return [_admin_out(db, m) for m in mentors]
 
 
+@router.get("/{mentor_id}", response_model=MentorAdminOut)
+def get_mentor(mentor_id: str, db: Database = Depends(get_db), _admin=Depends(require_admin)):
+    return _admin_out(db, _get_mentor_or_404(db, mentor_id))
+
+
 @router.post("", response_model=MentorCreated, status_code=201)
 def create_mentor(payload: MentorCreate, db: Database = Depends(get_db), _admin=Depends(require_admin)):
     name = payload.name.strip()

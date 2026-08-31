@@ -33,7 +33,7 @@ const STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
   FAILED: "destructive",
 }
 
-const STATUS_LABEL: Record<string, string> = {
+export const STATUS_LABEL: Record<string, string> = {
   UPLOADED: "Uploaded",
   PROCESSING: "Processing",
   TRANSCRIBED: "Transcribed",

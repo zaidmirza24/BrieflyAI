@@ -3,7 +3,7 @@ with as plain dicts internally (see api/services/); these schemas define
 the shape returned to the client."""
 
 import datetime
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -11,6 +11,18 @@ from backend.session_status import SessionStatus
 
 MenteeStatus = Literal["active", "paused", "graduated", "dropped"]
 Gender = Literal["M", "F", "O"]
+
+T = TypeVar("T")
+
+
+class Page(BaseModel, Generic[T]):
+    """Generic paginated list envelope."""
+
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
+    pages: int
 
 
 class SessionCreate(BaseModel):
@@ -46,7 +58,9 @@ class SessionOut(BaseModel):
 
 class SessionSummaryOut(BaseModel):
     id: str
+    student_id: str
     student_name: str
+    mentor_id: str
     mentor_name: str
     audio_filename: str
     status: SessionStatus
@@ -81,6 +95,7 @@ class StudentOut(BaseModel):
     mentor_area: str | None = None
     analysis_count: int
     last_analysis_at: datetime.datetime | None
+    created_at: datetime.datetime | None = None
     # True when status is active/paused and the last session is older than the
     # cadence window (or there has never been a session).
     overdue: bool = False

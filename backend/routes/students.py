@@ -97,6 +97,7 @@ def _student_out(db: Database, student: dict) -> StudentOut:
         mentor_area=mentor.get("area") if mentor else None,
         analysis_count=len(sessions),
         last_analysis_at=last_at,
+        created_at=student.get("created_at"),
         overdue=_is_overdue(student, last_at),
     )
 
@@ -370,7 +371,9 @@ def get_student(
     session_summaries = [
         SessionSummaryOut(
             id=str(s["_id"]),
+            student_id=str(s["student_id"]),
             student_name=student["name"],
+            mentor_id=str(s["mentor_id"]),
             mentor_name=mentor_name(s["mentor_id"]),
             audio_filename=s["audio_filename"],
             status=s["status"],

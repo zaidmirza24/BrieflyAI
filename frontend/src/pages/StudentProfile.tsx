@@ -1,24 +1,17 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, ArrowRight, CalendarDays, FileAudio, History, User2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarDays, FileAudio, History, Pencil, User2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { StatusBadge, MenteeStatusBadge, Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/components/ui/toast"
+import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
+import { EditMenteeDialog } from "@/components/EditMenteeDialog"
 import { isAdmin } from "@/lib/auth"
-import {
-  ApiError,
-  getStudent,
-  listMentors,
-  reassignStudent,
-  updateStudent,
-  type MenteeStatus,
-  type MentorSummary,
-  type StudentDetail,
-} from "@/lib/api"
+import { ApiError, getStudent, updateStudent, type MenteeStatus, type StudentDetail } from "@/lib/api"
 
 function formatDate(iso: string | null) {
   if (!iso) return "—"
@@ -32,6 +25,8 @@ export default function StudentProfile() {
   const admin = isAdmin()
   const [student, setStudent] = useState<StudentDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showAssign, setShowAssign] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
 
   function load() {
     if (!id) return
@@ -78,7 +73,7 @@ export default function StudentProfile() {
                   Mentor: {student.mentor_name ?? "Unassigned"}
                 </p>
               </div>
-              <div className="flex gap-6 sm:gap-8">
+              <div className="flex items-center gap-6 sm:gap-8">
                 <div>
                   <p className="text-2xl font-semibold tracking-tight">{student.analysis_count}</p>
                   <p className="text-xs text-[var(--muted-foreground)]">Sessions</p>
@@ -87,6 +82,10 @@ export default function StudentProfile() {
                   <p className="text-2xl font-semibold tracking-tight">{formatDate(student.last_analysis_at)}</p>
                   <p className="text-xs text-[var(--muted-foreground)]">Last session</p>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -97,9 +96,17 @@ export default function StudentProfile() {
             <Detail label="Area" value={student.area} />
             <Detail label="School" value={student.school} />
             <Detail label="Contact" value={student.contact} />
+            <Detail label="Intake date" value={formatDate(student.created_at)} />
           </div>
 
-          {admin && <AdminControls student={student} onChanged={load} />}
+          {student.notes && (
+            <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
+              <p className="text-xs text-[var(--muted-foreground)]">Notes</p>
+              <p className="mt-1 whitespace-pre-wrap">{student.notes}</p>
+            </div>
+          )}
+
+          {admin && <AdminControls student={student} onChanged={load} onChangeMentor={() => setShowAssign(true)} />}
 
           {student.assignments.length > 0 && (
             <>
@@ -158,6 +165,33 @@ export default function StudentProfile() {
           </div>
         </>
       )}
+
+      {student && showAssign && (
+        <AssignMenteeDialog
+          student={{
+            id: student.id,
+            name: student.name,
+            primary_mentor_id: student.primary_mentor_id,
+            mentor_name: student.mentor_name,
+          }}
+          onClose={() => setShowAssign(false)}
+          onDone={() => {
+            setShowAssign(false)
+            load()
+          }}
+        />
+      )}
+
+      {student && showEdit && (
+        <EditMenteeDialog
+          student={student}
+          onClose={() => setShowEdit(false)}
+          onDone={() => {
+            setShowEdit(false)
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -171,40 +205,25 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   )
 }
 
-function AdminControls({ student, onChanged }: { student: StudentDetail; onChanged: () => void }) {
-  const [mentors, setMentors] = useState<MentorSummary[]>([])
-  const [mentorId, setMentorId] = useState(student.primary_mentor_id ?? "")
-  const [reason, setReason] = useState("")
+function AdminControls({
+  student,
+  onChanged,
+  onChangeMentor,
+}: {
+  student: StudentDetail
+  onChanged: () => void
+  onChangeMentor: () => void
+}) {
+  const toast = useToast()
   const [savingStatus, setSavingStatus] = useState(false)
-  const [savingMentor, setSavingMentor] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    listMentors().then(setMentors).catch(() => setMentors([]))
-  }, [])
-
-  const dirty = mentorId !== (student.primary_mentor_id ?? "")
-
-  async function saveAssignment() {
-    if (!dirty || reason.trim().length < 3) return
-    setSavingMentor(true)
-    setError(null)
-    try {
-      await reassignStudent(student.id, mentorId || null, reason.trim())
-      setReason("")
-      onChanged()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not reassign.")
-    } finally {
-      setSavingMentor(false)
-    }
-  }
 
   async function changeStatus(next: MenteeStatus) {
     setSavingStatus(true)
     setError(null)
     try {
       await updateStudent(student.id, { status: next })
+      toast("Status updated")
       onChanged()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update status.")
@@ -215,7 +234,7 @@ function AdminControls({ student, onChanged }: { student: StudentDetail; onChang
 
   return (
     <Card className="mt-4">
-      <CardContent className="flex flex-col gap-4 pt-6">
+      <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-end sm:gap-6">
         <div className="flex flex-col gap-1.5">
           <Label>Status</Label>
           <Select
@@ -231,32 +250,12 @@ function AdminControls({ student, onChanged }: { student: StudentDetail; onChang
             ))}
           </Select>
         </div>
-
         <div className="flex flex-col gap-1.5">
           <Label>Mentor</Label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={mentorId} onChange={(e) => setMentorId(e.target.value)} className="sm:w-56">
-              <option value="">Unassigned</option>
-              {mentors.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                  {m.area ? ` · ${m.area}` : ""}
-                </option>
-              ))}
-            </Select>
-            <Input
-              placeholder="Reason for the change"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="sm:flex-1"
-              disabled={!dirty}
-            />
-            <Button
-              variant="accent"
-              disabled={!dirty || savingMentor || reason.trim().length < 3}
-              onClick={saveAssignment}
-            >
-              {savingMentor ? "Saving…" : "Save"}
+          <div className="flex items-center gap-3">
+            <span className="text-sm">{student.mentor_name ?? "Unassigned"}</span>
+            <Button variant="outline" size="sm" onClick={onChangeMentor}>
+              Change mentor
             </Button>
           </div>
         </div>

@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react"
 import { Navigate, NavLink, Route, BrowserRouter, Routes, useLocation } from "react-router-dom"
-import { ClipboardList, IdCard, LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
+import { ClipboardList, FileAudio, IdCard, LayoutDashboard, LogOut, Menu, Moon, Plus, Sparkles, Sun, Users, X } from "lucide-react"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import Students from "@/pages/Students"
 import StudentProfile from "@/pages/StudentProfile"
 import NewAnalysis from "@/pages/NewAnalysis"
 import AnalysisView from "@/pages/AnalysisView"
+import Analyses from "@/pages/Analyses"
 import Mentors from "@/pages/Mentors"
+import MentorDetail from "@/pages/MentorDetail"
 import Assignments from "@/pages/Assignments"
 import { buttonVariants } from "@/components/ui/button"
+import { ToastProvider } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 import { isLoggedIn, isAdmin, clearCredentials } from "@/lib/auth"
 import { getEffectiveTheme, setTheme, subscribeToSystemTheme, type Theme } from "@/lib/theme"
@@ -30,6 +33,7 @@ function navItems() {
   return [
     { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
     { to: "/students", label: admin ? "Mentees" : "My Mentees", icon: Users, end: false },
+    { to: "/analyses", label: "Analyses", icon: FileAudio, end: false },
     ...(admin
       ? [
           { to: "/assignments", label: "Assignments", icon: ClipboardList, end: false },
@@ -220,18 +224,22 @@ function Protected({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Protected><Dashboard /></Protected>} />
-        <Route path="/students" element={<Protected><Students /></Protected>} />
-        <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
-        <Route path="/assignments" element={<RequireAdmin><AppShell><Assignments /></AppShell></RequireAdmin>} />
-        <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
-        <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
-        <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/students" element={<Protected><Students /></Protected>} />
+          <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
+          <Route path="/analyses" element={<Protected><Analyses /></Protected>} />
+          <Route path="/assignments" element={<RequireAdmin><AppShell><Assignments /></AppShell></RequireAdmin>} />
+          <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
+          <Route path="/mentors/:id" element={<RequireAdmin><AppShell><MentorDetail /></AppShell></RequireAdmin>} />
+          <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
+          <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   )
 }
