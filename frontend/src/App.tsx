@@ -176,7 +176,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [location.pathname])
 
   return (
-    <div className="min-h-screen bg-[var(--muted)] lg:flex">
+    <div className="min-h-screen bg-[var(--muted)] lg:flex lg:h-screen lg:overflow-hidden">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-[var(--shadow-lg)]"
@@ -185,11 +185,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex lg:h-screen lg:sticky lg:top-0">
         <div className="flex h-16 items-center border-b border-[var(--border)] px-5">
           <Brand />
         </div>
-        <div className="flex flex-1 flex-col justify-between p-3">
+        <div className="flex flex-1 flex-col justify-between overflow-y-auto p-3">
           <div className="flex flex-col gap-4">
             <NavLink to="/new" className={cn(buttonVariants({ variant: "accent" }), "w-full justify-start")}>
               <Plus className="h-4 w-4" />
@@ -226,7 +226,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
       {mobileNavOpen && <MobileDrawer onClose={() => setMobileNavOpen(false)} />}
 
-      <main id="main" className="min-w-0 flex-1">
+      <main id="main" className="min-w-0 flex-1 lg:h-screen lg:overflow-y-auto">
         {children}
       </main>
     </div>

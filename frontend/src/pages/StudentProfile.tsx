@@ -221,9 +221,12 @@ function AdminControls({
 }) {
   const toast = useToast()
   const [savingStatus, setSavingStatus] = useState(false)
+  const [optimisticStatus, setOptimisticStatus] = useState<MenteeStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function changeStatus(next: MenteeStatus) {
+    const previous = student.status
+    setOptimisticStatus(next) // reflect the choice instantly
     setSavingStatus(true)
     setError(null)
     try {
@@ -231,6 +234,7 @@ function AdminControls({
       toast("Status updated")
       onChanged()
     } catch (err) {
+      setOptimisticStatus(previous) // roll back
       setError(err instanceof ApiError ? err.message : "Could not update status.")
     } finally {
       setSavingStatus(false)
@@ -241,10 +245,13 @@ function AdminControls({
     <Card className="mt-4">
       <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-end sm:gap-6">
         <div className="flex flex-col gap-1.5">
-          <Label>Status</Label>
+          <Label>
+            Status
+            {savingStatus && <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">Saving…</span>}
+          </Label>
           <Select
-            value={student.status}
-            loading={savingStatus}
+            value={optimisticStatus ?? student.status}
+            disabled={savingStatus}
             onChange={(e) => changeStatus(e.target.value as MenteeStatus)}
             className="sm:w-48"
           >

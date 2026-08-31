@@ -202,7 +202,7 @@ export function AudioUpload({ onUploaded, onCleared }: Props) {
 
       {status === "ready" && (
         <Button variant="accent" onClick={startUpload} className="mt-4">
-          Upload Audio
+          Upload recording
         </Button>
       )}
     </div>

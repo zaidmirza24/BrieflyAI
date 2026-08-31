@@ -118,7 +118,8 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
   const [error, setError] = useState<string | null>(null)
 
   function reload() {
-    setQueue(null)
+    // Keep the current rows visible while refiltering; only the very first
+    // load (queue === null) shows the skeleton.
     listStudents({ unassigned: true, area: location || undefined })
       .then(setQueue)
       .catch(() => setError("Could not load the unassigned queue."))
@@ -159,12 +160,16 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
     if (!mentorId || selected.size === 0 || reason.trim().length < 3) return
     setBusy(true)
     setError(null)
+    const assignedIds = new Set(selected)
     try {
       const res = await bulkAssignStudents([...selected], mentorId, reason.trim())
       toast(
         `Assigned ${res.assigned} mentee${res.assigned === 1 ? "" : "s"}` +
           (res.skipped.length ? `, skipped ${res.skipped.length}` : ""),
       )
+      // Drop the just-assigned rows immediately; reload reconciles in the
+      // background (and brings back any the server skipped).
+      setQueue((q) => q?.filter((s) => !assignedIds.has(s.id)) ?? q)
       setSelected(new Set())
       setReason("")
       reload()
@@ -316,15 +321,15 @@ function ByMentor({ onChanged }: { onChanged: () => void }) {
     listMentors(undefined, location).then(setMentors).catch(() => setMentors([]))
   }, [location])
 
-  function loadRoster() {
+  function loadRoster(showSkeleton = false) {
     if (!mentorId) {
       setRoster(null)
       return
     }
-    setRoster(null)
+    if (showSkeleton) setRoster(null)
     listStudents({ mentorId }).then(setRoster).catch(() => setRoster([]))
   }
-  useEffect(loadRoster, [mentorId])
+  useEffect(() => loadRoster(true), [mentorId])
 
   return (
     <>

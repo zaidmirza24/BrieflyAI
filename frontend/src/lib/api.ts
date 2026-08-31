@@ -30,12 +30,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    let message = `Request failed (${res.status})`
+    let message =
+      res.status >= 500
+        ? "Something went wrong on our end. Please try again in a moment."
+        : "That didn't go through. Please check your details and try again."
     try {
       const body = await res.json()
-      if (body?.detail) message = body.detail
+      if (typeof body?.detail === "string" && body.detail) message = body.detail
     } catch {
-      // non-JSON error body, keep default message
+      // non-JSON error body, keep the friendly default
     }
     throw new ApiError(res.status, message)
   }
@@ -256,7 +259,13 @@ export async function streamAnalysis(
     return
   }
   if (!res.ok || !res.body) {
-    onEvent({ type: "error", message: `Request failed (${res.status})` })
+    onEvent({
+      type: "error",
+      message:
+        res.status >= 500
+          ? "The analysis service is busy right now. Your recording is safe — please retry in a moment."
+          : "We couldn't start the analysis. Please try again.",
+    })
     return
   }
 

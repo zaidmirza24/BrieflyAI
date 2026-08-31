@@ -11,7 +11,7 @@ import { slugFromName } from "@/components/mentors/MentorLogin"
 import { LOCATIONS } from "@/lib/locations"
 import { ApiError, createMentor, type MentorAccount } from "@/lib/api"
 
-const STEPS = ["Identity", "Login", "Review"]
+const STEPS = ["Details", "Login", "Review"]
 
 export function AddMentorWizard({
   onClose,

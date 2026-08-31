@@ -102,6 +102,74 @@ def _student_out(db: Database, student: dict) -> StudentOut:
     )
 
 
+def _students_out_batch(db: Database, students: list[dict]) -> list[StudentOut]:
+    """Vectorised equivalent of ``[_student_out(db, s) for s in students]``.
+
+    Replaces the per-student ``sessions.find`` + 1-2 ``mentors.find_one`` (an
+    N+1 that dominated the mentee-list latency) with one sessions aggregation
+    and one batched mentor lookup.
+    """
+    if not students:
+        return []
+    ids = [s["_id"] for s in students]
+    stats: dict = {
+        row["_id"]: row
+        for row in db.sessions.aggregate(
+            [
+                {"$match": {"student_id": {"$in": ids}}},
+                {"$sort": {"created_at": -1}},
+                {
+                    "$group": {
+                        "_id": "$student_id",
+                        "count": {"$sum": 1},
+                        "last_at": {"$first": "$created_at"},
+                        "last_mentor_id": {"$first": "$mentor_id"},
+                    }
+                },
+            ]
+        )
+    }
+
+    wanted: set = set()
+    for s in students:
+        if s.get("primary_mentor_id"):
+            wanted.add(s["primary_mentor_id"])
+        st = stats.get(s["_id"])
+        if st and st.get("last_mentor_id"):
+            wanted.add(st["last_mentor_id"])
+    mentors = {m["_id"]: m for m in db.mentors.find({"_id": {"$in": list(wanted)}})}
+
+    out: list[StudentOut] = []
+    for s in students:
+        st = stats.get(s["_id"])
+        last_at = st["last_at"] if st else None
+        mentor = mentors.get(s.get("primary_mentor_id"))
+        if mentor is None and st and st.get("last_mentor_id"):
+            mentor = mentors.get(st["last_mentor_id"])
+        out.append(
+            StudentOut(
+                id=str(s["_id"]),
+                name=s["name"],
+                gender=s.get("gender"),
+                contact=s.get("contact"),
+                std=s.get("std"),
+                school=s.get("school"),
+                area=s.get("area") or (mentor.get("area") if mentor else None),
+                status=s.get("status", MENTEE_STATUS_DEFAULT),
+                cadence_days=s.get("cadence_days"),
+                notes=s.get("notes"),
+                primary_mentor_id=str(s["primary_mentor_id"]) if s.get("primary_mentor_id") else None,
+                mentor_name=mentor["name"] if mentor else None,
+                mentor_area=mentor.get("area") if mentor else None,
+                analysis_count=st["count"] if st else 0,
+                last_analysis_at=last_at,
+                created_at=s.get("created_at"),
+                overdue=_is_overdue(s, last_at),
+            )
+        )
+    return out
+
+
 def _load_scoped_student(db: Database, student_id: str, principal: Principal) -> dict:
     student = db.students.find_one({"_id": _oid(student_id, "mentee id")})
     if student is None:
@@ -226,8 +294,8 @@ def list_students(
     else:
         query["primary_mentor_id"] = principal.mentor_oid()
 
-    students = db.students.find(query).sort("name", 1)
-    out = [_student_out(db, s) for s in students]
+    students = list(db.students.find(query).sort("name", 1))
+    out = _students_out_batch(db, students)
     if overdue:
         out = [s for s in out if s.overdue]
     return out
@@ -245,11 +313,18 @@ def attention_summary(db: Database = Depends(get_db), principal: Principal = Dep
     )
     paused = db.students.count_documents({**base, "status": "paused"})
 
-    overdue = 0
-    for student in db.students.find({**base, "status": {"$in": list(MENTEE_ACTIVE_STATUSES)}}):
-        latest = db.sessions.find_one({"student_id": student["_id"]}, sort=[("created_at", -1)])
-        if _is_overdue(student, latest["created_at"] if latest else None):
-            overdue += 1
+    active = list(db.students.find({**base, "status": {"$in": list(MENTEE_ACTIVE_STATUSES)}}))
+    last_at: dict = {
+        row["_id"]: row["last_at"]
+        for row in db.sessions.aggregate(
+            [
+                {"$match": {"student_id": {"$in": [s["_id"] for s in active]}}},
+                {"$sort": {"created_at": -1}},
+                {"$group": {"_id": "$student_id", "last_at": {"$first": "$created_at"}}},
+            ]
+        )
+    }
+    overdue = sum(1 for s in active if _is_overdue(s, last_at.get(s["_id"])))
 
     return AttentionSummary(unassigned=unassigned, overdue=overdue, paused=paused)
 

@@ -42,8 +42,8 @@ function StatCard({
 }
 
 export default function Dashboard() {
-  usePageTitle("Dashboard")
   const admin = isAdmin()
+  usePageTitle(admin ? "Admin dashboard" : "Mentor dashboard")
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [attention, setAttention] = useState<AttentionSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +68,9 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Here's where things stand</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Your mentor-mentee sessions and progress, all in one place.
+            {admin
+              ? "Mentees, mentors, and every session across the programme."
+              : "Your mentees and their latest mentoring sessions."}
           </p>
         </div>
         <Link to="/new" className={buttonVariants({ variant: "accent" })}>
@@ -122,8 +124,8 @@ export default function Dashboard() {
       {summary && (
         <>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatCard icon={Users} label="Total Students" value={summary.total_students} />
-            <StatCard icon={FileAudio} label="Total Analyses" value={summary.total_analyses} />
+            <StatCard icon={Users} label={admin ? "Mentees" : "My mentees"} value={summary.total_students} />
+            <StatCard icon={FileAudio} label="Sessions analyzed" value={summary.total_analyses} />
           </div>
 
           {attention && attentionTotal > 0 && (
@@ -182,7 +184,8 @@ export default function Dashboard() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{a.student_name}</p>
                         <p className="truncate text-xs text-[var(--muted-foreground)]">
-                          Mentor: {a.mentor_name} · {formatDate(a.created_at)}
+                          {admin ? `Mentor: ${a.mentor_name} · ` : ""}
+                          {formatDate(a.created_at)}
                         </p>
                       </div>
                       <StatusBadge status={a.status} />

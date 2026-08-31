@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { useToast } from "@/components/ui/toast"
 import { LOCATIONS } from "@/lib/locations"
 import { usePageTitle } from "@/lib/usePageTitle"
 import {
@@ -38,6 +39,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 export default function NewAnalysis() {
   usePageTitle("New Analysis")
   const navigate = useNavigate()
+  const toast = useToast()
   const abortRef = useRef<AbortController | null>(null)
   const [me, setMe] = useState<Me | null>(null)
   const isMentor = me?.role === "mentor"
@@ -142,6 +144,7 @@ export default function NewAnalysis() {
             setErrorMessage(event.message)
             setPhase("error")
           } else if (event.type === "done") {
+            toast(`Analysis ready for ${event.result.student_name}`)
             navigate(`/analyses/${event.result.id}`)
           }
         },
@@ -262,7 +265,7 @@ export default function NewAnalysis() {
         <CardHeader>
           <CardTitle as="h2" className="flex items-center gap-2">
             <AudioLines className="h-4 w-4 text-[var(--muted-foreground)]" />
-            Audio File
+            Session recording
           </CardTitle>
           <CardDescription className="flex items-start gap-1.5">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--success)]" />
@@ -286,7 +289,7 @@ export default function NewAnalysis() {
 
       {phase === "form" && (
         <Button variant="accent" className="mt-6 w-full" size="lg" disabled={!canStart} onClick={startAnalysis}>
-          Analyze Conversation
+          Analyze session
         </Button>
       )}
 

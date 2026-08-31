@@ -21,7 +21,7 @@ export function AddMenteeWizard({
   onCreated: () => void
 }) {
   const toast = useToast()
-  const steps = admin ? ["Identity", "Assignment", "Review"] : ["Identity", "Review"]
+  const steps = admin ? ["Details", "Mentor", "Review"] : ["Details", "Review"]
   const w = useWizard(steps.length)
 
   const [name, setName] = useState("")

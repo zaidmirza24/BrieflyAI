@@ -107,8 +107,40 @@ def list_mentors(
         query["name"] = {"$regex": re.escape(q), "$options": "i"}
     if area:
         query["area"] = {"$regex": f"^{re.escape(area)}$", "$options": "i"}
-    mentors = db.mentors.find(query).sort("name", 1)
-    return [_admin_out(db, m) for m in mentors]
+    mentors = list(db.mentors.find(query).sort("name", 1))
+    ids = [m["_id"] for m in mentors]
+    counts: dict = {
+        row["_id"]: row["n"]
+        for row in db.students.aggregate(
+            [
+                {
+                    "$match": {
+                        "primary_mentor_id": {"$in": ids},
+                        "status": {"$in": list(MENTEE_ACTIVE_STATUSES)},
+                    }
+                },
+                {"$group": {"_id": "$primary_mentor_id", "n": {"$sum": 1}}},
+            ]
+        )
+    }
+    accounts: dict = {
+        u["mentor_id"]: u["username"]
+        for u in db.users.find({"mentor_id": {"$in": ids}, "role": "mentor"}, {"mentor_id": 1, "username": 1})
+    }
+    return [
+        MentorAdminOut(
+            id=str(m["_id"]),
+            name=m["name"],
+            area=m.get("area"),
+            gender=m.get("gender"),
+            contact=m.get("contact"),
+            education=m.get("education"),
+            capacity=m.get("capacity"),
+            mentee_count=counts.get(m["_id"], 0),
+            account_username=accounts.get(m["_id"]),
+        )
+        for m in mentors
+    ]
 
 
 @router.get("/{mentor_id}", response_model=MentorAdminOut)

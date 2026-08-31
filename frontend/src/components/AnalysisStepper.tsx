@@ -11,7 +11,7 @@ interface Step {
 const STEPS: Step[] = [
   { key: "uploaded", label: "Audio uploaded" },
   { key: "transcribing", label: "Transcription" },
-  { key: "analyzing", label: "Analyzing conversation" },
+  { key: "analyzing", label: "Analyzing the session" },
   { key: "saving", label: "Saving insights" },
   { key: "deleting", label: "Removing temporary audio" },
 ]

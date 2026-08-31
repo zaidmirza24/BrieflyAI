@@ -580,3 +580,91 @@ or virtualising tables at current data volumes — none are justified yet.
 _Items marked **requires runtime testing**: the Vercel Hobby 60 s analyze cap (§2.4),
 long-transcript rendering cost (§4.1), and exact colour-contrast ratios (§8.9). Everything
 else was verified by static inspection of the source._
+
+---
+
+## 11. Application Language & Label Improvements
+
+_Phase 16 pass (2026-09-01). Scope: every visible label, heading, button, status,
+message, placeholder, empty state and loading string, audited against the product's
+actual domain and the role using each screen. Changes applied, not just catalogued._
+
+### Domain understanding used for the audit
+
+- **What it is:** a tool for a school-mentoring programme (Mumbra / Govandi) that
+  records mentor–mentee sessions, transcribes them, and produces AI insights.
+- **Roles:** `admin` (programme coordinator — runs mentors, mentees, assignments, sees
+  everything) and `mentor` (scoped to their own assigned mentees).
+- **Core objects:** **mentor**, **mentee**, **session** (one recorded mentoring call),
+  **analysis** (the AI output of a session), **assignment** (mentee ↔ mentor, audited).
+
+### 1. Domain terminology standardised
+
+| Was | Now | Why |
+|---|---|---|
+| "Total Students" / "Student participation" / "Student Profile / Participation" | "Mentees" / "Mentee participation" / "Mentee snapshot" | The whole app calls this person a **mentee**; only the dashboard stat and the AI-insights panel still said "Student". Now consistent everywhere the user can see. |
+| "Analyse" / "analysed" (British) mixed with "Analyze" / "Analyzed" (badge, stepper, buttons) | "Analyze" / "analyzed" everywhere | One spelling. The status badge, stepper and primary button already used the American form. |
+| "conversation" / "Audio File" for the thing being analysed | "session" / "Session recording" | Detail pages already speak in **sessions** ("Session history"); the new-analysis screen now matches. |
+| Wizard steps "Identity" / "Assignment" | "Details" / "Mentor" | "Identity" is developer language; "Details" and "Mentor" describe what the step actually collects. |
+
+Left deliberately unchanged: "Grade / Std" (local school terminology in this
+programme's area), route paths / `student_*` API fields (not user-visible), and
+"Mentor Advice" / "Suggestions for Mentor" / "Mentee Commitments" in the insights panel
+(already consistent and domain-correct).
+
+### 2. Role-based labels
+
+| Screen | Admin sees | Mentor sees |
+|---|---|---|
+| Dashboard tab title | "Admin dashboard" | "Mentor dashboard" |
+| Dashboard subtitle | "Mentees, mentors, and every session across the programme." | "Your mentees and their latest mentoring sessions." |
+| Dashboard stat card | "Mentees" | "My mentees" |
+| Dashboard recent-session row | "Mentor: {name} · {date}" | "{date}" (the mentor is always themselves — dropped the noise) |
+| Mentees page / title | "Mentees" — "Every mentee across the programme." | "My Mentees" — "The mentees assigned to you." (already in place, confirmed) |
+| Analyses subtitle | "Every mentoring session analyzed across the programme." | "Every session you've analyzed." |
+
+### 3. Contextual messaging (generic → domain-specific)
+
+- Analyses empty state: "You're ready to get started" / "Analyse a recording and it'll
+  show up here." → **"No sessions analyzed yet"** / "Analyze a mentoring session
+  recording and it'll show up here."
+- New-analysis primary action: "Analyze Conversation" → **"Analyze session"**.
+- Upload action: "Upload Audio" → **"Upload recording"**.
+
+### 4. Loading states
+
+The app already uses contextual, scoped loading copy (`Loading mentors…`,
+`Loading mentees…`, `Verifying upload…`, `Uploading… {n}%`, per-button `Saving…` /
+`Adding…` / `Creating…`, the named analysis stepper). One stepper label tightened:
+"Analyzing conversation" → **"Analyzing the session"**. No generic bare `Loading…`
+strings remain in user-facing views.
+
+### 5. Empty states
+
+Already actionable and page-specific (Mentees, Mentors, Assignments queue, session
+history, transcript, insights all explain what's empty + a next step). Only the
+Analyses no-filter empty state was still generic — fixed above. The filtered-vs-unfiltered
+split ("No matches for these filters" + "clear a filter" vs the real empty message) is
+preserved on every list.
+
+### 6. Error and success messages
+
+- **Generic HTTP leakage removed** from `lib/api.ts`: `"Request failed (500)"` →
+  role-neutral human copy — 5xx: *"Something went wrong on our end. Please try again in
+  a moment."*, 4xx: *"That didn't go through. Please check your details and try again."*
+  Backend `detail` strings are still surfaced when they're a plain string (they are
+  already domain-worded: "Mentee not found.", "That username is taken.", …).
+- **Analyze stream start failure**: `"Request failed (n)"` → *"The analysis service is
+  busy right now. Your recording is safe — please retry in a moment."* (5xx) /
+  *"We couldn't start the analysis. Please try again."* (4xx).
+- Success toasts were already contextual and were left as-is ("Mentee {name} added",
+  "{name} assigned to {mentor}", "Analysis ready for {name}", "Status updated", …).
+
+### Status label mapping (confirmed centralised)
+
+Backend session states are mapped to display labels in one place —
+`components/ui/badge.tsx` (`STATUS_LABEL` / `STATUS_VARIANT`, and `MENTEE_STATUS`).
+No raw `PROCESSING` / `AUDIO_DELETED` style values reach the screen; `AUDIO_DELETED`
+already renders as "Complete". No change needed — noted here so it stays centralised.
+
+_`npm run build` + `tsc` green after these changes._

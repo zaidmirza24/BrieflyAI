@@ -107,12 +107,12 @@ export function ResultsPanel({ insights }: { insights: Insights }) {
         <CardHeader className="pb-2">
           <CardTitle as="h2" className="flex items-center gap-2 text-sm font-semibold">
             <User2 className="h-4 w-4 text-[var(--muted-foreground)]" />
-            Student Profile / Participation
+            Mentee snapshot
           </CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-            <Field label="Student participation" value={insights.student_participation} />
+            <Field label="Mentee participation" value={insights.student_participation} />
             <Field label="School" value={insights.school_name} />
             <Field label="Tuition status" value={insights.tuition_status} />
             <Field label="Current routine" value={insights.current_routine} />

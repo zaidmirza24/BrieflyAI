@@ -96,7 +96,7 @@ export default function Analyses() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Analyses</h1>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          {admin ? "Every mentoring call analysed across the programme." : "Every recording you've analysed."}
+          {admin ? "Every mentoring session analyzed across the programme." : "Every session you've analyzed."}
         </p>
       </div>
 
@@ -195,11 +195,11 @@ export default function Analyses() {
         {data && data.items.length === 0 && (
           <EmptyState
             icon={FileAudio}
-            title={filtersActive ? "No matches for these filters" : "You're ready to get started"}
+            title={filtersActive ? "No matches for these filters" : "No sessions analyzed yet"}
             description={
               filtersActive
                 ? "Try widening your search or clearing a filter."
-                : "Analyse a recording and it'll show up here."
+                : "Analyze a mentoring session recording and it'll show up here."
             }
           />
         )}
