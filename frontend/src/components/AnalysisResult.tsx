@@ -1,13 +1,11 @@
+import { useMemo } from "react"
 import { FileAudio, User2 } from "lucide-react"
 import { ResultsPanel } from "@/components/ResultsPanel"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatDate } from "@/lib/utils"
 import type { SessionDetail } from "@/lib/api"
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
 
 // "[00:01] SPEAKER_00: <text>" or, once roles are resolved, "[00:01] Zaid: <text>"
 // -- every line starts with a Latin timestamp prefix, so dir="auto" on the
@@ -31,6 +29,7 @@ function TranscriptLine({ line }: { line: string }) {
 }
 
 function Transcript({ transcript }: { transcript: string | null }) {
+  const lines = useMemo(() => transcript?.split("\n") ?? [], [transcript])
   if (!transcript) {
     return <p className="p-6 text-sm text-[var(--muted-foreground)]">No transcript available.</p>
   }
@@ -38,7 +37,7 @@ function Transcript({ transcript }: { transcript: string | null }) {
     <Card>
       <CardContent className="pt-6">
         <div className="thin-scroll max-h-[32rem] overflow-y-auto break-words font-mono text-[13px] leading-relaxed text-[var(--foreground)]">
-          {transcript.split("\n").map((line, i) => (
+          {lines.map((line, i) => (
             <TranscriptLine key={i} line={line} />
           ))}
         </div>

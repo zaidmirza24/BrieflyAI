@@ -7,16 +7,14 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { StatusBadge, MenteeStatusBadge, Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorState } from "@/components/ui/error-state"
 import { useToast } from "@/components/ui/toast"
 import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
 import { EditMenteeDialog } from "@/components/EditMenteeDialog"
 import { isAdmin } from "@/lib/auth"
+import { formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import { ApiError, getStudent, updateStudent, type MenteeStatus, type StudentDetail } from "@/lib/api"
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—"
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
 
 const STATUSES: MenteeStatus[] = ["active", "paused", "graduated", "dropped"]
 
@@ -28,8 +26,11 @@ export default function StudentProfile() {
   const [showAssign, setShowAssign] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
 
+  usePageTitle(student?.name ?? "Mentee")
+
   function load() {
     if (!id) return
+    setError(null)
     getStudent(id)
       .then(setStudent)
       .catch(() => setError("Could not load this mentee."))
@@ -47,7 +48,11 @@ export default function StudentProfile() {
         Back to Mentees
       </Link>
 
-      {error && <p className="mt-4 text-sm text-[var(--destructive)]">{error}</p>}
+      {error && (
+        <Card className="mt-4">
+          <ErrorState description={error} onRetry={load} />
+        </Card>
+      )}
 
       {!student && !error && (
         <Card className="mt-4">
@@ -110,7 +115,7 @@ export default function StudentProfile() {
 
           {student.assignments.length > 0 && (
             <>
-              <h2 className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
+              <h2 className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-[var(--foreground)]">
                 <History className="h-4 w-4" />
                 Assignment history
               </h2>
@@ -135,7 +140,7 @@ export default function StudentProfile() {
             </>
           )}
 
-          <h2 className="mt-8 text-sm font-semibold text-[var(--muted-foreground)]">Session history</h2>
+          <h2 className="mt-8 text-sm font-semibold text-[var(--foreground)]">Session history</h2>
           <div className="mt-3 flex flex-col gap-3">
             {student.sessions.length === 0 && (
               <p className="text-sm text-[var(--muted-foreground)]">No sessions yet.</p>
@@ -245,7 +250,7 @@ function AdminControls({
           >
             {STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s[0].toUpperCase() + s.slice(1)}
+                {s.charAt(0).toUpperCase() + s.slice(1)}
               </option>
             ))}
           </Select>

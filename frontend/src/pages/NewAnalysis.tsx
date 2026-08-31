@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AudioLines, ShieldCheck, Sparkles } from "lucide-react"
 import { AudioUpload, type UploadedAudio } from "@/components/AudioUpload"
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { LOCATIONS } from "@/lib/locations"
+import { usePageTitle } from "@/lib/usePageTitle"
 import {
   ApiError,
   createSession,
@@ -35,7 +36,9 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 }
 
 export default function NewAnalysis() {
+  usePageTitle("New Analysis")
   const navigate = useNavigate()
+  const abortRef = useRef<AbortController | null>(null)
   const [me, setMe] = useState<Me | null>(null)
   const isMentor = me?.role === "mentor"
 
@@ -56,6 +59,9 @@ export default function NewAnalysis() {
   const [phase, setPhase] = useState<Phase>("form")
   const [stage, setStage] = useState<AnalysisStage | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // Abort a running analyse stream if the user leaves this screen.
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   useEffect(() => {
     getMe()
@@ -124,17 +130,26 @@ export default function NewAnalysis() {
         setSessionId(id)
       }
 
-      await streamAnalysis(id, (event) => {
-        if (event.type === "stage") {
-          setStage(event.stage)
-        } else if (event.type === "error") {
-          setErrorMessage(event.message)
-          setPhase("error")
-        } else if (event.type === "done") {
-          navigate(`/analyses/${event.result.id}`)
-        }
-      })
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
+
+      await streamAnalysis(
+        id,
+        (event) => {
+          if (event.type === "stage") {
+            setStage(event.stage)
+          } else if (event.type === "error") {
+            setErrorMessage(event.message)
+            setPhase("error")
+          } else if (event.type === "done") {
+            navigate(`/analyses/${event.result.id}`)
+          }
+        },
+        abortRef.current.signal,
+      )
     } catch (err) {
+      // The user navigated away — the abort is expected, don't flash an error.
+      if (abortRef.current?.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) return
       setErrorMessage(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
       setPhase("error")
     }
@@ -154,7 +169,7 @@ export default function NewAnalysis() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Session details</CardTitle>
+          <CardTitle as="h2">Session details</CardTitle>
           <CardDescription>Who this recording is for</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -245,7 +260,7 @@ export default function NewAnalysis() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle as="h2" className="flex items-center gap-2">
             <AudioLines className="h-4 w-4 text-[var(--muted-foreground)]" />
             Audio File
           </CardTitle>
@@ -278,7 +293,7 @@ export default function NewAnalysis() {
       {(phase === "analyzing" || phase === "error") && (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle as="h2" className="text-base">
               {phase === "analyzing" ? "Analyzing your recording…" : "Analysis failed"}
             </CardTitle>
           </CardHeader>

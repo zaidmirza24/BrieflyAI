@@ -148,8 +148,22 @@ body {
 }
 
 ::selection {
-  background: var(--accent-bg);
-  color: var(--accent-strong);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Thin, unobtrusive scrollbars for transcript/results panels */

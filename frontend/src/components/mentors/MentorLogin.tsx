@@ -38,6 +38,7 @@ export function CredentialCard({ account, onDismiss }: { account: MentorAccount;
           <Button
             variant="outline"
             size="sm"
+            aria-label={copied ? "Copied" : "Copy login details"}
             onClick={() => {
               navigator.clipboard?.writeText(line)
               setCopied(true)

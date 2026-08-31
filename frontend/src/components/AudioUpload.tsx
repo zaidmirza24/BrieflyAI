@@ -30,6 +30,12 @@ export function AudioUpload({ onUploaded, onCleared }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const pickFile = useCallback((f: File) => {
+    const MAX_BYTES = 500 * 1024 * 1024 // 500 MB — generous for a long recording
+    if (f.size > MAX_BYTES) {
+      setStatus("error")
+      setError(`That file is ${formatBytes(f.size)}. The limit is 500 MB — please trim or compress the recording.`)
+      return
+    }
     setFile(f)
     setStatus("ready")
     setProgress(0)
@@ -96,41 +102,49 @@ export function AudioUpload({ onUploaded, onCleared }: Props) {
 
   if (!file) {
     return (
-      <div
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragActive(true)
-        }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed p-10 text-center transition-colors",
-          dragActive ? "border-[var(--accent)] bg-[var(--accent-bg)]" : "border-[var(--border-strong)] hover:border-[var(--accent)] hover:bg-[var(--accent-bg)]/40",
-        )}
-      >
-        <div
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragActive(true)
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-            dragActive ? "bg-[var(--accent)] text-white" : "bg-[var(--muted)] text-[var(--muted-foreground)]",
+            "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed p-10 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+            dragActive
+              ? "border-[var(--accent)] bg-[var(--accent-bg)]"
+              : "border-[var(--border-strong)] hover:border-[var(--accent)] hover:bg-[var(--accent-bg)]/40",
           )}
         >
-          <UploadCloud className="h-5 w-5" />
-        </div>
-        <p className="text-sm font-medium text-[var(--foreground)]">
-          Drag and drop your audio recording here
-        </p>
-        <p className="text-xs text-[var(--muted-foreground)]">or click to browse — MP3, WAV, M4A, AAC, OGG, FLAC</p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm,.flac"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) pickFile(f)
-          }}
-        />
+          <span
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+              dragActive ? "bg-[var(--accent)] text-white" : "bg-[var(--muted)] text-[var(--muted-foreground)]",
+            )}
+          >
+            <UploadCloud className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-medium text-[var(--foreground)]">
+            Drag and drop your audio recording here
+          </span>
+          <span className="text-xs text-[var(--muted-foreground)]">
+            or click to browse — MP3, WAV, M4A, AAC, OGG, FLAC (max 500 MB)
+          </span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.webm,.flac"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) pickFile(f)
+            }}
+          />
+        </button>
+        {status === "error" && error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
       </div>
     )
   }

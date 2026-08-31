@@ -8,7 +8,8 @@ import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MenteeStatusBadge, Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import { useToast } from "@/components/ui/toast"
 import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
 import { LOCATIONS } from "@/lib/locations"
@@ -22,11 +23,6 @@ import {
   type MentorAdmin,
   type StudentSummary,
 } from "@/lib/api"
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—"
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
 
 function StatCard({
   icon: Icon,
@@ -62,13 +58,15 @@ export default function Assignments() {
   const [mode, setMode] = useState<"queue" | "by-mentor">("queue")
   const [attention, setAttention] = useState<AttentionSummary | null>(null)
 
+  usePageTitle("Assignments")
+
   function loadAttention() {
     getAttentionSummary().then(setAttention).catch(() => setAttention(null))
   }
   useEffect(loadAttention, [])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 pb-28">
+    <div className="mx-auto max-w-5xl px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Assignments</h1>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -218,54 +216,58 @@ function UnassignedQueue({ onChanged }: { onChanged: () => void }) {
         )}
 
         {queue && queue.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
-                <th className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all"
-                    checked={allSelected}
-                    onChange={(e) => setSelected(e.target.checked ? new Set(queue.map((s) => s.id)) : new Set())}
-                  />
-                </th>
-                <th className="px-4 py-3 font-medium">Mentee</th>
-                <th className="px-4 py-3 font-medium">Grade</th>
-                <th className="px-4 py-3 font-medium">Area</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {queue.map((s) => (
-                <tr key={s.id} className="transition-colors hover:bg-[var(--muted)]">
-                  <td className="px-4 py-3">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                  <th className="px-4 py-3">
                     <input
                       type="checkbox"
-                      aria-label={`Select ${s.name}`}
-                      checked={selected.has(s.id)}
-                      onChange={() => toggle(s.id)}
+                      aria-label="Select all"
+                      className="h-4 w-4 accent-[var(--accent)]"
+                      checked={allSelected}
+                      onChange={(e) => setSelected(e.target.checked ? new Set(queue.map((s) => s.id)) : new Set())}
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link to={`/students/${s.id}`} className="font-medium hover:underline">
-                      {s.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-[var(--muted-foreground)]">{s.std ?? "—"}</td>
-                  <td className="px-4 py-3 text-[var(--muted-foreground)]">{s.area ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <MenteeStatusBadge status={s.status} />
-                  </td>
+                  </th>
+                  <th className="px-4 py-3 font-medium">Mentee</th>
+                  <th className="px-4 py-3 font-medium">Grade</th>
+                  <th className="px-4 py-3 font-medium">Area</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {queue.map((s) => (
+                  <tr key={s.id} className="transition-colors hover:bg-[var(--muted)]">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${s.name}`}
+                        className="h-4 w-4 accent-[var(--accent)]"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggle(s.id)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link to={`/students/${s.id}`} className="font-medium hover:underline">
+                        {s.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-[var(--muted-foreground)]">{s.std ?? "—"}</td>
+                    <td className="px-4 py-3 text-[var(--muted-foreground)]">{s.area ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <MenteeStatusBadge status={s.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
       {selected.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="sticky bottom-4 z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]/95 p-4 shadow-[var(--shadow-lg)] backdrop-blur">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <span className="text-sm font-medium">{selected.size} selected</span>
             <Select
               value={mentorId}

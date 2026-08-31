@@ -23,7 +23,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const push = React.useCallback((message: string, tone: Tone = "success") => {
     const id = nextId++
     setToasts((t) => [...t, { id, message, tone }])
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 6000)
   }, [])
 
   const dismiss = (id: number) => setToasts((t) => t.filter((x) => x.id !== id))
@@ -31,7 +31,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6">
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6"
+      >
         {toasts.map((t) => {
           const Icon = t.tone === "success" ? CheckCircle2 : t.tone === "error" ? XCircle : Info
           return (

@@ -11,9 +11,12 @@ import Analyses from "@/pages/Analyses"
 import Mentors from "@/pages/Mentors"
 import MentorDetail from "@/pages/MentorDetail"
 import Assignments from "@/pages/Assignments"
+import NotFound from "@/pages/NotFound"
 import { buttonVariants } from "@/components/ui/button"
 import { ToastProvider } from "@/components/ui/toast"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { cn } from "@/lib/utils"
+import { useFocusTrap } from "@/lib/useFocusTrap"
 import { isLoggedIn, isAdmin, clearCredentials } from "@/lib/auth"
 import { getEffectiveTheme, setTheme, subscribeToSystemTheme, type Theme } from "@/lib/theme"
 
@@ -62,7 +65,7 @@ function Brand({ compact }: { compact?: boolean }) {
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-col gap-1">
+    <nav aria-label="Primary" className="flex flex-col gap-1">
       {navItems().map((item) => (
         <NavLink
           key={item.to}
@@ -71,7 +74,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               isActive
                 ? "bg-[var(--accent-bg)] text-[var(--accent-strong)]"
                 : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
@@ -102,7 +105,7 @@ function ThemeToggle({ className }: { className?: string }) {
       onClick={toggle}
       aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         className,
       )}
     >
@@ -120,13 +123,47 @@ function SignOutButton({ className }: { className?: string }) {
         window.location.href = "/login"
       }}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
         className,
       )}
     >
       <LogOut className="h-4 w-4" />
       Sign out
     </button>
+  )
+}
+
+function MobileDrawer({ onClose }: { onClose: () => void }) {
+  const ref = useFocusTrap<HTMLDivElement>(onClose)
+  return (
+    <div className="fixed inset-0 z-30 lg:hidden">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-[var(--surface)] shadow-[var(--shadow-lg)] focus:outline-none"
+      >
+        <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-4">
+          <Brand />
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex flex-1 flex-col justify-between p-3">
+          <SidebarNav onNavigate={onClose} />
+          <div className="flex flex-col gap-1">
+            <ThemeToggle />
+            <SignOutButton />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -140,6 +177,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[var(--muted)] lg:flex">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-[var(--shadow-lg)]"
+      >
+        Skip to content
+      </a>
+
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex">
         <div className="flex h-16 items-center border-b border-[var(--border)] px-5">
@@ -165,7 +209,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => setMobileNavOpen(true)}
           aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--foreground)] hover:bg-[var(--muted)]"
+          aria-expanded={mobileNavOpen}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--foreground)] hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -173,43 +218,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <NavLink
           to="/new"
           aria-label="New Analysis"
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-strong)]"
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Plus className="h-4.5 w-4.5" />
         </NavLink>
       </header>
 
-      {/* Mobile nav drawer */}
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-30 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setMobileNavOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-[var(--surface)] shadow-[var(--shadow-lg)]">
-            <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-4">
-              <Brand />
-              <button
-                onClick={() => setMobileNavOpen(false)}
-                aria-label="Close menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex flex-1 flex-col justify-between p-3">
-              <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
-              <div className="flex flex-col gap-1">
-                <ThemeToggle />
-                <SignOutButton />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {mobileNavOpen && <MobileDrawer onClose={() => setMobileNavOpen(false)} />}
 
-      <div className="min-w-0 flex-1">{children}</div>
+      <main id="main" className="min-w-0 flex-1">
+        {children}
+      </main>
     </div>
   )
 }
@@ -224,22 +243,24 @@ function Protected({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Protected><Dashboard /></Protected>} />
-          <Route path="/students" element={<Protected><Students /></Protected>} />
-          <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
-          <Route path="/analyses" element={<Protected><Analyses /></Protected>} />
-          <Route path="/assignments" element={<RequireAdmin><AppShell><Assignments /></AppShell></RequireAdmin>} />
-          <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
-          <Route path="/mentors/:id" element={<RequireAdmin><AppShell><MentorDetail /></AppShell></RequireAdmin>} />
-          <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
-          <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Protected><Dashboard /></Protected>} />
+            <Route path="/students" element={<Protected><Students /></Protected>} />
+            <Route path="/students/:id" element={<Protected><StudentProfile /></Protected>} />
+            <Route path="/analyses" element={<Protected><Analyses /></Protected>} />
+            <Route path="/assignments" element={<RequireAdmin><AppShell><Assignments /></AppShell></RequireAdmin>} />
+            <Route path="/mentors" element={<RequireAdmin><AppShell><Mentors /></AppShell></RequireAdmin>} />
+            <Route path="/mentors/:id" element={<RequireAdmin><AppShell><MentorDetail /></AppShell></RequireAdmin>} />
+            <Route path="/new" element={<Protected><NewAnalysis /></Protected>} />
+            <Route path="/analyses/:id" element={<Protected><AnalysisView /></Protected>} />
+            <Route path="*" element={<Protected><NotFound /></Protected>} />
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 }

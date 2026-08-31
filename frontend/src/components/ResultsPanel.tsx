@@ -67,7 +67,7 @@ function SectionCard({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {items && items.length > 0 ? (
+        {Array.isArray(items) && items.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {items.map((item, i) => (
               <li key={i} className="flex gap-2 text-sm leading-relaxed">
@@ -93,7 +93,7 @@ export function ResultsPanel({ insights }: { insights: Insights }) {
     <div className="flex flex-col gap-4">
       <Card className="border-[var(--accent-border)] bg-gradient-to-br from-[var(--accent-bg)] to-[var(--surface)]">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
+          <CardTitle as="h2" className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
             <Sparkles className="h-4 w-4" />
             Summary
           </CardTitle>
@@ -105,7 +105,7 @@ export function ResultsPanel({ insights }: { insights: Insights }) {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle as="h2" className="flex items-center gap-2 text-sm font-semibold">
             <User2 className="h-4 w-4 text-[var(--muted-foreground)]" />
             Student Profile / Participation
           </CardTitle>
@@ -122,7 +122,7 @@ export function ResultsPanel({ insights }: { insights: Insights }) {
               </dt>
               <dd className="mt-1 text-sm text-[var(--foreground)]">
                 {studyHours?.mentioned ? (
-                  `${studyHours.current ?? "?"}${studyHours.target ? ` → ${studyHours.target}` : ""} ${studyHours.unit.replace(/_/g, " ")}`
+                  `${studyHours.current ?? "?"}${studyHours.target ? ` → ${studyHours.target}` : ""} ${(studyHours.unit ?? "").replace(/_/g, " ")}`.trim()
                 ) : (
                   <span className="text-[var(--muted-foreground)]">Not mentioned</span>
                 )}

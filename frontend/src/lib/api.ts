@@ -8,6 +8,15 @@ export class ApiError extends Error {
   }
 }
 
+let redirectingToLogin = false
+
+function handleSessionExpired() {
+  if (redirectingToLogin) return
+  redirectingToLogin = true
+  clearCredentials()
+  window.location.href = "/login"
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const authHeader = getAuthHeader()
   const headers = new Headers(options.headers)
@@ -16,8 +25,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(path, { ...options, headers })
 
   if (res.status === 401) {
-    clearCredentials()
-    window.location.href = "/login"
+    handleSessionExpired()
     throw new ApiError(401, "Session expired. Please log in again.")
   }
 
@@ -233,15 +241,18 @@ export type AnalysisEvent =
  * ReadableStream (not EventSource, which can't POST) is read incrementally
  * so stage events arrive as the pipeline actually progresses.
  */
-export async function streamAnalysis(sessionId: string, onEvent: (event: AnalysisEvent) => void): Promise<void> {
+export async function streamAnalysis(
+  sessionId: string,
+  onEvent: (event: AnalysisEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
   const authHeader = getAuthHeader()
   const headers = new Headers()
   if (authHeader) headers.set("Authorization", authHeader)
 
-  const res = await fetch(`/api/sessions/${sessionId}/analyze`, { method: "POST", headers })
+  const res = await fetch(`/api/sessions/${sessionId}/analyze`, { method: "POST", headers, signal })
   if (res.status === 401) {
-    clearCredentials()
-    window.location.href = "/login"
+    handleSessionExpired()
     return
   }
   if (!res.ok || !res.body) {
@@ -253,22 +264,28 @@ export async function streamAnalysis(sessionId: string, onEvent: (event: Analysi
   const decoder = new TextDecoder()
   let buffer = ""
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
 
-    const events = buffer.split("\n\n")
-    buffer = events.pop() ?? ""
-    for (const raw of events) {
-      const line = raw.split("\n").find((l) => l.startsWith("data: "))
-      if (!line) continue
-      try {
-        onEvent(JSON.parse(line.slice("data: ".length)))
-      } catch {
-        // ignore malformed chunk
+      const events = buffer.split("\n\n")
+      buffer = events.pop() ?? ""
+      for (const raw of events) {
+        const line = raw.split("\n").find((l) => l.startsWith("data: "))
+        if (!line) continue
+        try {
+          onEvent(JSON.parse(line.slice("data: ".length)))
+        } catch {
+          // ignore malformed chunk
+        }
       }
     }
+  } catch (err) {
+    // A caller-triggered abort (navigating away) is expected — stay quiet.
+    if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return
+    onEvent({ type: "error", message: "The connection was interrupted. You can retry the analysis." })
   }
 }
 
@@ -419,7 +436,9 @@ export async function createStudent(payload: {
   primary_mentor_id?: string | null
   assignment_reason?: string | null
 } & MenteeProfileInput): Promise<StudentSummary> {
-  return api.post<StudentSummary>("/api/students", payload)
+  const result = await api.post<StudentSummary>("/api/students", payload)
+  if (payload.primary_mentor_id) invalidateMentorsCache()
+  return result
 }
 
 export async function updateStudent(
@@ -434,10 +453,12 @@ export async function reassignStudent(
   primaryMentorId: string | null,
   reason: string,
 ): Promise<StudentSummary> {
-  return api.patch<StudentSummary>(`/api/students/${id}/assignment`, {
+  const result = await api.patch<StudentSummary>(`/api/students/${id}/assignment`, {
     primary_mentor_id: primaryMentorId,
     reason,
   })
+  invalidateMentorsCache() // mentee_count changed
+  return result
 }
 
 export interface BulkAssignResult {
@@ -450,11 +471,13 @@ export async function bulkAssignStudents(
   primaryMentorId: string,
   reason: string,
 ): Promise<BulkAssignResult> {
-  return api.post<BulkAssignResult>("/api/students/assign", {
+  const result = await api.post<BulkAssignResult>("/api/students/assign", {
     student_ids: studentIds,
     primary_mentor_id: primaryMentorId,
     reason,
   })
+  invalidateMentorsCache()
+  return result
 }
 
 export interface MentorSummary {
@@ -484,6 +507,25 @@ export async function listMentors(query?: string, area?: string): Promise<Mentor
   return api.get<MentorAdmin[]>(`/api/mentors${qs}`)
 }
 
+// The full, unscoped mentor list is small and rarely changes but is needed by
+// every assign/reassign dialog. Memoise it and drop the cache whenever a mentor
+// or an assignment is mutated.
+let allMentorsCache: Promise<MentorAdmin[]> | null = null
+
+export function listAllMentorsCached(): Promise<MentorAdmin[]> {
+  if (!allMentorsCache) {
+    allMentorsCache = listMentors().catch((err) => {
+      allMentorsCache = null
+      throw err
+    })
+  }
+  return allMentorsCache
+}
+
+export function invalidateMentorsCache() {
+  allMentorsCache = null
+}
+
 export interface MentorCreated extends MentorSummary {
   account: MentorAccount | null
 }
@@ -498,7 +540,9 @@ export async function createMentor(payload: {
   username?: string
   password?: string
 }): Promise<MentorCreated> {
-  return api.post<MentorCreated>("/api/mentors", payload)
+  const result = await api.post<MentorCreated>("/api/mentors", payload)
+  invalidateMentorsCache()
+  return result
 }
 
 export async function updateMentor(
@@ -512,7 +556,9 @@ export async function updateMentor(
     capacity: number | null
   }>,
 ): Promise<MentorAdmin> {
-  return api.patch<MentorAdmin>(`/api/mentors/${id}`, payload)
+  const result = await api.patch<MentorAdmin>(`/api/mentors/${id}`, payload)
+  invalidateMentorsCache()
+  return result
 }
 
 export interface MentorAccount {

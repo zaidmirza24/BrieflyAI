@@ -5,11 +5,14 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatusBadge, STATUS_LABEL } from "@/components/ui/badge"
 import { Pagination } from "@/components/ui/pagination"
 import { LOCATIONS } from "@/lib/locations"
 import { isAdmin } from "@/lib/auth"
+import { formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import {
   listMentors,
   listSessions,
@@ -22,15 +25,14 @@ import {
 const PAGE_SIZE = 20
 const STATUSES: SessionStatus[] = ["UPLOADED", "PROCESSING", "TRANSCRIBED", "ANALYZED", "SAVED", "AUDIO_DELETED", "FAILED"]
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
-
 export default function Analyses() {
+  usePageTitle("Analyses")
   const admin = isAdmin()
   const navigate = useNavigate()
 
   const [data, setData] = useState<Page<SessionSummary> | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [nonce, setNonce] = useState(0)
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<SessionStatus | "">("")
@@ -56,8 +58,11 @@ export default function Analyses() {
   }, [query, status, dateFrom, dateTo, location, mentorId])
 
   useEffect(() => {
+    let cancelled = false
+    // On the very first load `data` is null → skeleton. On later filter changes
+    // the previous page stays on screen until the new one arrives.
+    if (data === null) setError(null)
     const handle = setTimeout(() => {
-      setData(null)
       listSessions({
         page,
         pageSize: PAGE_SIZE,
@@ -68,11 +73,21 @@ export default function Analyses() {
         area: admin && !mentorId ? location || undefined : undefined,
         mentorId: admin ? mentorId || undefined : undefined,
       })
-        .then(setData)
-        .catch(() => setData({ items: [], total: 0, page: 1, page_size: PAGE_SIZE, pages: 1 }))
+        .then((res) => {
+          if (cancelled) return
+          setData(res)
+          setError(null)
+        })
+        .catch(() => {
+          if (!cancelled) setError("Could not load analyses.")
+        })
     }, 200)
-    return () => clearTimeout(handle)
-  }, [page, query, status, dateFrom, dateTo, location, mentorId, admin])
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, query, status, dateFrom, dateTo, location, mentorId, admin, nonce])
 
   const filtersActive = !!(query || status || dateFrom || dateTo || location || mentorId)
 
@@ -162,7 +177,11 @@ export default function Analyses() {
       )}
 
       <Card className="mt-2 overflow-hidden">
-        {data === null && (
+        {error && data === null && (
+          <ErrorState description={error} onRetry={() => setNonce((n) => n + 1)} />
+        )}
+
+        {!error && data === null && (
           <ul className="divide-y divide-[var(--border)]">
             {Array.from({ length: 6 }).map((_, i) => (
               <li key={i} className="flex items-center justify-between gap-4 px-6 py-3.5">

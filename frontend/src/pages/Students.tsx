@@ -6,18 +6,16 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge, MenteeStatusBadge } from "@/components/ui/badge"
 import { AddMenteeWizard } from "@/components/onboarding/AddMenteeWizard"
 import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
 import { LOCATIONS } from "@/lib/locations"
 import { isAdmin } from "@/lib/auth"
+import { formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import { listMentors, listStudents, type MenteeStatus, type MentorSummary, type StudentSummary } from "@/lib/api"
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—"
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
 
 const STATUS_OPTIONS: { value: MenteeStatus; label: string }[] = [
   { value: "active", label: "Active" },
@@ -27,8 +25,10 @@ const STATUS_OPTIONS: { value: MenteeStatus; label: string }[] = [
 ]
 
 export default function Students() {
+  usePageTitle(isAdmin() ? "Mentees" : "My Mentees")
   const admin = isAdmin()
   const [students, setStudents] = useState<StudentSummary[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [location, setLocation] = useState("")
   const [mentorId, setMentorId] = useState("")
@@ -50,13 +50,17 @@ export default function Students() {
   }, [location, admin])
 
   function reload() {
-    setStudents(null)
+    // Keep the current rows visible while refiltering; only the first load
+    // (students === null) shows the skeleton.
+    setError(null)
     listStudents({
       query: query || undefined,
       area: admin && !mentorId ? location || undefined : undefined,
       mentorId: admin ? mentorId || undefined : undefined,
       status: status || undefined,
-    }).then(setStudents)
+    })
+      .then(setStudents)
+      .catch(() => setError("Could not load mentees."))
   }
 
   useEffect(() => {
@@ -137,7 +141,9 @@ export default function Students() {
       </div>
 
       <Card className="mt-4 overflow-hidden">
-        {students === null && (
+        {error && <ErrorState description={error} onRetry={reload} />}
+
+        {!error && students === null && (
           <ul className="divide-y divide-[var(--border)]">
             {Array.from({ length: 5 }).map((_, i) => (
               <li key={i} className="flex items-center justify-between gap-4 px-6 py-3.5">
@@ -148,7 +154,7 @@ export default function Students() {
           </ul>
         )}
 
-        {students && students.length === 0 && (
+        {!error && students && students.length === 0 && (
           <EmptyState
             icon={Users}
             title={query || status || location ? "No mentees match" : "No mentees yet"}
@@ -163,7 +169,7 @@ export default function Students() {
           />
         )}
 
-        {students && students.length > 0 && (
+        {!error && students && students.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

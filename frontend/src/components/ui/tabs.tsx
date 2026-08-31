@@ -61,6 +61,12 @@ export function TabsTrigger({ value, children }: { value: string; children: Reac
 export function TabsContent({ value, children }: { value: string; children: React.ReactNode }) {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error("TabsContent must be used within Tabs")
-  if (ctx.value !== value) return null
-  return <div className="mt-4">{children}</div>
+  const active = ctx.value === value
+  // Stay mounted while hidden so switching tabs doesn't re-render/re-parse
+  // expensive content (e.g. a long transcript).
+  return (
+    <div role="tabpanel" hidden={!active} className={active ? "mt-4" : undefined}>
+      {children}
+    </div>
+  )
 }

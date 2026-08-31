@@ -7,9 +7,11 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { setSession } from "@/lib/auth"
+import { usePageTitle } from "@/lib/usePageTitle"
 import { ApiError, login } from "@/lib/api"
 
 export default function Login() {
+  usePageTitle("Sign in")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +56,7 @@ export default function Login() {
                 <Input
                   id="username"
                   autoFocus
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -63,6 +66,7 @@ export default function Login() {
                 <Label htmlFor="password">Password</Label>
                 <PasswordInput
                   id="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

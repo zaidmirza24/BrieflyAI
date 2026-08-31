@@ -100,7 +100,7 @@ function Icon({ status }: { status: StepStatus }) {
 export function AnalysisStepper({ stage, hasError }: { stage: AnalysisStage | null; hasError: boolean }) {
   const states = stepStatesForStage(stage, hasError)
   return (
-    <ol className="flex flex-col gap-3">
+    <ol className="flex flex-col gap-3" aria-live="polite">
       {STEPS.map((step) => {
         const status = states[step.key]
         return (

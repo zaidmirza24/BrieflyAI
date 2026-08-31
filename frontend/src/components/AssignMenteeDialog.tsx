@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast"
 import { LOCATIONS } from "@/lib/locations"
-import { ApiError, listMentors, reassignStudent, type MentorAdmin } from "@/lib/api"
+import { ApiError, listAllMentorsCached, reassignStudent, type MentorAdmin } from "@/lib/api"
 
 export function AssignMenteeDialog({
   student,
@@ -32,7 +32,7 @@ export function AssignMenteeDialog({
   // Load every mentor once, then drive the location -> mentor cascade from
   // that list (no extra round-trips, and areas outside LOCATIONS still show).
   useEffect(() => {
-    listMentors()
+    listAllMentorsCached()
       .then((all) => {
         setMentors(all)
         setLoaded(true)

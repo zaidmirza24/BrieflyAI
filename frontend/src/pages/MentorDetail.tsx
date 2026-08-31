@@ -4,6 +4,7 @@ import { ArrowLeft, KeyRound, Pencil, Users, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorState } from "@/components/ui/error-state"
 import { Avatar } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Badge, MenteeStatusBadge } from "@/components/ui/badge"
@@ -11,6 +12,8 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { CredentialCard, ProvisionLoginDialog } from "@/components/mentors/MentorLogin"
 import { EditMentorDialog } from "@/components/mentors/EditMentorDialog"
 import { AssignMenteeDialog } from "@/components/AssignMenteeDialog"
+import { formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import {
   ApiError,
   getMentor,
@@ -20,11 +23,6 @@ import {
   type MentorAdmin,
   type StudentSummary,
 } from "@/lib/api"
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—"
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
 
 export default function MentorDetail() {
   const { id } = useParams<{ id: string }>()
@@ -38,11 +36,14 @@ export default function MentorDetail() {
 
   const load = useCallback(() => {
     if (!id) return
+    setError(null)
     getMentor(id).then(setMentor).catch(() => setError("Could not load this mentor."))
     listStudents({ mentorId: id }).then(setRoster).catch(() => setRoster([]))
   }, [id])
 
   useEffect(load, [load])
+
+  usePageTitle(mentor?.name ?? "Mentor")
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -54,7 +55,11 @@ export default function MentorDetail() {
         Back to Mentors
       </Link>
 
-      {error && <p className="mt-4 text-sm text-[var(--destructive)]">{error}</p>}
+      {error && (
+        <Card className="mt-4">
+          <ErrorState description={error} onRetry={load} />
+        </Card>
+      )}
       {credential && <CredentialCard account={credential} onDismiss={() => setCredential(null)} />}
 
       {!mentor && !error && (
@@ -133,7 +138,7 @@ export default function MentorDetail() {
             </CardContent>
           </Card>
 
-          <h2 className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
+          <h2 className="mt-8 flex items-center gap-1.5 text-sm font-semibold text-[var(--foreground)]">
             <Users className="h-4 w-4" />
             Mentees ({roster?.length ?? 0})
           </h2>

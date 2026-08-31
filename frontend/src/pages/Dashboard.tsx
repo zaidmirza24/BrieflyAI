@@ -5,8 +5,11 @@ import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { isAdmin } from "@/lib/auth"
+import { formatDate } from "@/lib/utils"
+import { usePageTitle } from "@/lib/usePageTitle"
 import {
   getAttentionSummary,
   getDashboardSummary,
@@ -38,22 +41,22 @@ function StatCard({
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-}
-
 export default function Dashboard() {
+  usePageTitle("Dashboard")
   const admin = isAdmin()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [attention, setAttention] = useState<AttentionSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  function load() {
+    setError(null)
     getDashboardSummary()
       .then(setSummary)
       .catch(() => setError("Could not load dashboard data."))
     getAttentionSummary().then(setAttention).catch(() => setAttention(null))
-  }, [])
+  }
+
+  useEffect(load, [])
 
   const attentionTotal = attention
     ? attention.unassigned + attention.overdue + attention.paused
@@ -74,7 +77,11 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {error && <p className="mt-6 text-sm text-[var(--destructive)]">{error}</p>}
+      {error && (
+        <Card className="mt-6">
+          <ErrorState description={error} onRetry={load} />
+        </Card>
+      )}
 
       {!summary && !error && (
         <>

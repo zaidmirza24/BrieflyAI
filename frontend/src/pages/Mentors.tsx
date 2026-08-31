@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { Skeleton } from "@/components/ui/skeleton"
+import { usePageTitle } from "@/lib/usePageTitle"
 import { Avatar } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +25,10 @@ export default function Mentors() {
   const [showAdd, setShowAdd] = useState(false)
   const [credential, setCredential] = useState<MentorAccount | null>(null)
 
+  usePageTitle("Mentors")
+
   function reload() {
+    setError(null)
     listMentors(query || undefined, locationFilter || undefined)
       .then(setMentors)
       .catch(() => setError("Could not load mentors."))
@@ -54,7 +59,11 @@ export default function Mentors() {
         </Button>
       </div>
 
-      {error && <p className="mt-4 text-sm text-[var(--destructive)]">{error}</p>}
+      {error && (
+        <Card className="mt-4">
+          <ErrorState description={error} onRetry={reload} />
+        </Card>
+      )}
       {credential && <CredentialCard account={credential} onDismiss={() => setCredential(null)} />}
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">

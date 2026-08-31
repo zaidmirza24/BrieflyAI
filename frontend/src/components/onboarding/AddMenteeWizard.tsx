@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/select"
 import { WizardSteps, useWizard } from "@/components/ui/wizard"
 import { useToast } from "@/components/ui/toast"
 import { LOCATIONS } from "@/lib/locations"
-import { ApiError, createStudent, listMentors, type Gender, type MentorAdmin } from "@/lib/api"
+import { ApiError, createStudent, listAllMentorsCached, type Gender, type MentorAdmin } from "@/lib/api"
 
 const GENDER_LABEL: Record<string, string> = { M: "Male", F: "Female", O: "Other" }
 
@@ -39,7 +39,7 @@ export function AddMenteeWizard({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (admin) listMentors().then(setMentors).catch(() => setMentors([]))
+    if (admin) listAllMentorsCached().then(setMentors).catch(() => setMentors([]))
   }, [admin])
 
   const isAssignStep = admin && w.step === 1
