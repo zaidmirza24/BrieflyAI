@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast"
+import { LOCATIONS } from "@/lib/locations"
 import { ApiError, listMentors, reassignStudent, type MentorAdmin } from "@/lib/api"
 
 export function AssignMenteeDialog({
@@ -21,19 +22,53 @@ export function AssignMenteeDialog({
 }) {
   const toast = useToast()
   const [mentors, setMentors] = useState<MentorAdmin[]>([])
-  const [mentorId, setMentorId] = useState(mode === "unassign" ? "" : student.primary_mentor_id ?? "")
+  const [loaded, setLoaded] = useState(false)
+  const [location, setLocation] = useState("")
+  const [mentorId, setMentorId] = useState("")
   const [reason, setReason] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Load every mentor once, then drive the location -> mentor cascade from
+  // that list (no extra round-trips, and areas outside LOCATIONS still show).
   useEffect(() => {
-    listMentors().then(setMentors).catch(() => setMentors([]))
+    listMentors()
+      .then((all) => {
+        setMentors(all)
+        setLoaded(true)
+        if (mode === "reassign" && student.primary_mentor_id) {
+          const current = all.find((m) => m.id === student.primary_mentor_id)
+          if (current?.area) setLocation(current.area)
+          setMentorId(student.primary_mentor_id)
+        }
+      })
+      .catch(() => setLoaded(true))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const areas = useMemo(() => {
+    const set = new Set<string>(LOCATIONS)
+    mentors.forEach((m) => m.area && set.add(m.area))
+    return [...set].sort()
+  }, [mentors])
+
+  const inLocation = useMemo(
+    () => (location ? mentors.filter((m) => m.area === location) : mentors),
+    [mentors, location],
+  )
 
   const target = useMemo(() => mentors.find((m) => m.id === mentorId) ?? null, [mentors, mentorId])
   const dirty = mentorId !== (student.primary_mentor_id ?? "")
   const overCapacity = !!target && target.capacity != null && target.mentee_count >= target.capacity
   const canSave = dirty && !busy && reason.trim().length >= 3
+
+  function pickLocation(next: string) {
+    setLocation(next)
+    // Drop the selected mentor if they're not in the new location.
+    if (mentorId && !mentors.some((m) => m.id === mentorId && (!next || m.area === next))) {
+      setMentorId("")
+    }
+  }
 
   async function submit() {
     if (!canSave) return
@@ -79,24 +114,44 @@ export function AssignMenteeDialog({
           </span>
         </p>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="assign-mentor">Mentor</Label>
-          <Select id="assign-mentor" value={mentorId} onChange={(e) => setMentorId(e.target.value)}>
-            <option value="">Unassigned (return to queue)</option>
-            {mentors.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-                {m.area ? ` · ${m.area}` : ""} · {m.mentee_count}
-                {m.capacity ? `/${m.capacity}` : ""}
-              </option>
-            ))}
-          </Select>
-          {overCapacity && (
-            <p className="text-xs text-[var(--warning)]">
-              {target?.name} is at or above their capacity ({target?.mentee_count}/{target?.capacity}).
-            </p>
-          )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="assign-location">Location</Label>
+            <Select id="assign-location" value={location} onChange={(e) => pickLocation(e.target.value)}>
+              <option value="">All locations</option>
+              {areas.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="assign-mentor">Mentor</Label>
+            <Select
+              id="assign-mentor"
+              value={mentorId}
+              loading={!loaded}
+              onChange={(e) => setMentorId(e.target.value)}
+            >
+              <option value="">Unassigned (return to queue)</option>
+              {inLocation.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} · {m.mentee_count}
+                  {m.capacity ? `/${m.capacity}` : ""}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
+        {location && loaded && inLocation.length === 0 && (
+          <p className="text-xs text-[var(--muted-foreground)]">No mentors in {location} yet.</p>
+        )}
+        {overCapacity && (
+          <p className="text-xs text-[var(--warning)]">
+            {target?.name} is at or above their capacity ({target?.mentee_count}/{target?.capacity}).
+          </p>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="assign-reason">Reason</Label>
